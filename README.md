@@ -2,7 +2,6 @@
 
 A sleek, interactive charting application for the XIAN decentralized exchange that visualizes trading pairs with candlestick charts and volume indicators.
 
-![XIAN DEX Chart](https://placehold.co/600x400?text=XIAN+DEX+Chart&font=montserrat)
 
 ## Features
 
