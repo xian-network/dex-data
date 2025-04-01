@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XIAN DEX Chart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #d4d4d4;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chart-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: calc(70vh - 60px);
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        #trade-history {
+            height: 30vh;
+            overflow-y: auto;
+            background-color: #1a1a1a;
+            padding: 20px;
+        }
+
+        .trade-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .trade-history-table th {
+            background-color: #2a2a2a;
+            color: #00ffff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .trade-history-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .trade-history-table tr:hover {
+            background-color: #2a2a2a;
+        }
+
+        .buy-row td {
+            color: #0066ff;
+        }
+
+        .sell-row td {
+            color: #9933ff;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3a3a;
+        }
+
+        /* Loading and error states */
+        #loading, #error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            color: #00ffff;
+            font-size: 14px;
+            display: none;
+        }
+
+        #error {
+            color: #ff0099;
+            border-color: #ff009950;
+        }
+
+        /* Select dropdowns hover and focus states */
+        select:hover {
+            border-color: #00ffff50 !important;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #00ffff !important;
+            box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Toggle button styling */
+        .toggle-button {
+            background-color: #2a2a2a !important;
+            color: #00ffff !important;
+            border: 1px solid #3a3a3a !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .toggle-button:hover {
+            background-color: #3a3a3a !important;
+            border-color: #00ffff50 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart-container">
+        <div id="loading">Loading...</div>
+        <div id="error"></div>
+    </div>
+    <div id="trade-history">
+        <table class="trade-history-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Amount</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody id="trade-history-body">
+            </tbody>
+        </table>
+    </div>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="chart.js"></script>
+</body>
+</html> 
