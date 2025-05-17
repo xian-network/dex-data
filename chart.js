@@ -384,48 +384,71 @@ class ChartController {
             error.style.display = 'block';
         }
     }
-    
     initializeChart() {
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
             return;
         }
-        
-        // First check if LightweightCharts is available
+    
         if (typeof LightweightCharts === 'undefined') {
             console.error('LightweightCharts library not loaded');
             document.getElementById('error').textContent = 'Chart library not loaded. Please refresh the page.';
             document.getElementById('error').style.display = 'block';
             return;
         }
-        
-        console.log('Initializing chart for pair', this.currentPair.id);
-        
+    
         const { createChart } = LightweightCharts;
-        
+    
+        // A single function to format every axis tick the same way (local date/time).
+        // Adjust the toLocaleString() options to your liking. For example:
+        //   dateStyle: 'short', timeStyle: 'short'
+        // or a custom format by splitting up date.getMonth(), date.getDate(), etc.
+        const uniformLocalTickFormatter = (unixTimeInSeconds /*, tickMarkType, locale */) => {
+            const date = new Date(unixTimeInSeconds * 1000);
+            return date.toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        };
+    
+        // Similarly, a single function for the crosshair tooltip time label
+        const uniformLocalCrosshairFormatter = (unixTimeInSeconds) => {
+            const date = new Date(unixTimeInSeconds * 1000);
+            return date.toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        };
+    
         // Create the chart
         this.chart = createChart(this.chartContainer, {
             width: this.chartContainer.clientWidth,
             height: this.chartContainer.clientHeight,
             layout: {
-                background: { 
-                    color: '#1a1a1a'
-                },
+                background: { color: '#1a1a1a' },
                 textColor: '#d4d4d4',
                 fontSize: 12,
                 fontFamily: "'Inter', 'Roboto', sans-serif",
             },
             grid: {
                 vertLines: { color: '#2a2a2a' },
-                horzLines: { color: '#2a2a2a' }
+                horzLines: { color: '#2a2a2a' },
             },
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
+                timezone: 'browser',            // Local browser time
                 borderColor: '#2a2a2a',
                 textColor: '#d4d4d4',
                 fixRightEdge: true,
                 fixLeftEdge: true,
+                // Force local date/time for every label:
+                tickMarkFormatter: uniformLocalTickFormatter,
             },
             crosshair: {
                 mode: 1,
@@ -438,7 +461,7 @@ class ChartController {
                     color: '#00ffff40',
                     width: 1,
                     style: 1,
-                }
+                },
             },
             handleScale: {
                 axisPressedMouseMove: {
@@ -446,25 +469,31 @@ class ChartController {
                     price: true,
                 },
             },
+            localization: {
+                // Use the user's browser locale automatically
+                locale: navigator.language,
+                // The crosshair tooltip time
+                timeFormatter: uniformLocalCrosshairFormatter,
+            },
         });
-
-        // Initialize series
+    
+        // Initialize candlestick & volume series
         this.initSeries();
-        
+    
         // Create volume tooltip
         this.createVolumeTooltip();
-        
-        // Update chart title
+    
+        // Update the chart title (watermark)
         this.updateChartTitle();
-        
-        // Create pair inversion toggle if it doesn't exist
+    
+        // Create pair inversion toggle if not present
         if (!this.toggleContainer) {
             this.createPairToggle();
         }
-        
-        // Load data for the current pair
+    
+        // Finally load the data
         this.loadChartData();
-        
+    
         // Handle window resizing
         window.addEventListener('resize', () => {
             if (this.chart) {
@@ -475,6 +504,8 @@ class ChartController {
             }
         });
     }
+    
+    
     
     updateChartTitle() {
         if (!this.currentPair || !this.chart) return;
@@ -690,15 +721,15 @@ class ChartController {
                 const data = trade.data;
                 
                 // Format time in UTC and explicitly label it
-                const hours = time.getUTCHours();
-                const minutes = time.getUTCMinutes();
-                const day = time.getUTCDate();
-                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} UTC`;
-                
-                // Format date in UTC
-                const formattedDate = `${day.toString().padStart(2, '0')}-${
-                    (time.getUTCMonth() + 1).toString().padStart(2, '0')}-${
-                    time.getUTCFullYear()}`;
+                const localHours   = time.getHours();
+                const localMinutes = time.getMinutes();
+                const localDay     = time.getDate();
+                const localMonth   = time.getMonth() + 1;
+                const localYear    = time.getFullYear();
+
+                const formattedTime = `${String(localHours).padStart(2, '0')}:${String(localMinutes).padStart(2, '0')}`;
+                const formattedDate = `${String(localDay).padStart(2, '0')}-${String(localMonth).padStart(2, '0')}-${localYear}`;
+
                 
                 // Determine trade type
                 const tradeType = this.determineTradeType(data);
