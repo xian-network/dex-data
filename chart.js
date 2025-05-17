@@ -545,10 +545,11 @@ class ChartController {
                     condition: {contract: "con_pairs", event: "Swap"}
                     filter: {dataIndexed: {contains: {pair: "${this.currentPair.id}"}}}
                     orderBy: CREATED_DESC
-                    first: 500
                 ) {
                     edges {
                         node {
+                            caller
+                            signer
                             dataIndexed
                             data
                             created
@@ -598,18 +599,21 @@ class ChartController {
                 const timestamp = new Date(timestampStr + 'Z'); // Ensure treating as UTC by appending Z
                 
                 // Debug timestamps
-                console.log('Raw timestamp:', timestampStr);
-                console.log('Parsed timestamp:', timestamp.toISOString());
-                console.log('UTC Hours:', timestamp.getUTCHours());
+                // console.log('Raw timestamp:', timestampStr);
+                // console.log('Parsed timestamp:', timestamp.toISOString());
+                // console.log('UTC Hours:', timestamp.getUTCHours());
                 
                 return {
                     timestamp: timestamp,
                     timestampStr: timestampStr,
                     indexed: dataIndexed,
-                    data: swapData
+                    data: swapData,
+                    caller: node.caller,
+                    signer: node.signer
                 };
             });
             
+            console.log(this.rawTrades)
             // For debugging, log the first trade's timestamp information
             if (this.rawTrades.length > 0) {
                 const sample = this.rawTrades[0];
@@ -664,7 +668,7 @@ class ChartController {
         
         if (!this.rawTrades || this.rawTrades.length === 0) {
             const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = `<td colspan="5" style="text-align: center; padding: 20px;">No trades found for this pair</td>`;
+            emptyRow.innerHTML = `<td colspan="6" style="text-align: center; padding: 20px;">No trades found for this pair</td>`;
             tableBody.appendChild(emptyRow);
             return;
         }
@@ -727,16 +731,22 @@ class ChartController {
                     value = this.isInverted ? amount0Out : amount1Out;
                 }
                 
+                // Get signer address
+                const signer = trade.signer || '';
+                
                 // Add appropriate CSS class
                 row.className = tradeType.toLowerCase() === 'buy' ? 'buy-row' : 'sell-row';
                 
-                // Format the row content
+                // Format the row content, now with signer column
                 row.innerHTML = `
                     <td class="trade-time" title="${time.toISOString()}">${formattedDate} ${formattedTime}</td>
                     <td class="trade-type">${tradeType}</td>
                     <td class="trade-price">${price.toFixed(6)}</td>
                     <td class="trade-amount">${amount.toFixed(4)} ${this.isInverted ? symbol1 : symbol0}</td>
                     <td class="trade-value">${value.toFixed(4)} ${this.isInverted ? symbol0 : symbol1}</td>
+                    <td class="trade-signer">
+                        ${signer ? `<a href="https://explorer.xian.org/addresses/${signer}" target="_blank" rel="noopener noreferrer">${signer.slice(0, 8)}...${signer.slice(-4)}</a>` : ''}
+                    </td>
                 `;
                 
                 tableBody.appendChild(row);
