@@ -894,7 +894,7 @@ class ChartController {
                 volumes.push({
                     time: timestamp,
                     value: totalVolume,
-                    color: firstCandle.close >= firstCandle.open ? '#0066ff80' : '#9933ff80'
+                    color: firstCandle.close >= firstCandle.open ? '#00ff0080' : '#ff000080'
                 });
                 
                 if (isCurrentInterval) currentCandle = firstCandle;
@@ -923,7 +923,7 @@ class ChartController {
                     volumes.push({
                         time: timestamp,
                         value: totalVolume,
-                        color: candle.close >= candle.open ? '#0066ff80' : '#9933ff80'
+                        color: candle.close >= candle.open ? '#00ff0080' : '#ff000080'
                     });
                     
                     if (isCurrentInterval) {
@@ -981,13 +981,11 @@ class ChartController {
 
         // Create candlestick series
         this.candlestickSeries = this.chart.addCandlestickSeries({
-            upColor: '#0066ff',
-            downColor: '#9933ff',
-            borderVisible: true,
-            wickUpColor: '#0066ff',
-            wickDownColor: '#9933ff',
-            borderUpColor: '#0066ff',
-            borderDownColor: '#9933ff',
+            upColor: '#00ff00',
+            downColor: '#ff0000',
+            borderVisible: false,
+            wickUpColor: '#00ff00',
+            wickDownColor: '#ff0000',
             priceFormat: {
                 type: 'price',
                 precision: 4,
@@ -1003,7 +1001,7 @@ class ChartController {
 
         // Add volume histogram series with a separate price scale
         this.volumeSeries = this.chart.addHistogramSeries({
-            color: '#0066ff80',
+            color: '#00ff0080',
             priceFormat: {
                 type: 'volume',
                 formatter: value => value.toFixed(2),
@@ -1254,7 +1252,7 @@ class ChartController {
                 
                 // Determine color based on candlestick
                 const candle = this.candlestickSeries.dataByTime().get(time);
-                const color = candle && candle.close >= candle.open ? '#0066ff' : '#9933ff';
+                const color = candle && candle.close >= candle.open ? '#00ff00' : '#ff0000';
                 
                 // Position the tooltip
                 const x = param.point.x;
