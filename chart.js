@@ -245,14 +245,14 @@ class ChartController {
         console.log('Creating selectors');
         const selectorContainer = document.createElement('div');
         selectorContainer.className = 'selector-container';
-        selectorContainer.style.position = 'absolute';
-        selectorContainer.style.top = '10px';
-        selectorContainer.style.left = '10px';
-        selectorContainer.style.zIndex = '5';
+        // selectorContainer.style.position = 'absolute'; // Removed
+        // selectorContainer.style.top = '10px'; // Removed
+        // selectorContainer.style.left = '10px'; // Removed
+        // selectorContainer.style.zIndex = '5'; // Removed
         selectorContainer.style.backgroundColor = '#2a2a2a';
         selectorContainer.style.padding = '8px';
         selectorContainer.style.borderRadius = '4px';
-        selectorContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
+        // selectorContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)'; // Removed
         selectorContainer.style.display = 'flex';
         selectorContainer.style.gap = '10px';
         selectorContainer.style.alignItems = 'center';
@@ -317,7 +317,7 @@ class ChartController {
         selectorContainer.appendChild(timeframeLabel);
         selectorContainer.appendChild(this.timeframeSelect);
         
-        this.chartContainer.appendChild(selectorContainer);
+        document.getElementById('header-bar').appendChild(selectorContainer);
         
         console.log('Selectors created');
     }
@@ -505,10 +505,10 @@ class ChartController {
         // Create toggle button
         this.toggleContainer = document.createElement('div');
         this.toggleContainer.className = 'toggle-container';
-        this.toggleContainer.style.position = 'absolute';
-        this.toggleContainer.style.top = '10px';
-        this.toggleContainer.style.right = '10px';
-        this.toggleContainer.style.zIndex = '5';
+        // this.toggleContainer.style.position = 'absolute'; // Removed
+        // this.toggleContainer.style.top = '10px'; // Removed
+        // this.toggleContainer.style.right = '10px'; // Removed
+        // this.toggleContainer.style.zIndex = '5'; // Removed
         
         const toggleButton = document.createElement('button');
         toggleButton.textContent = 'Invert Pair';
@@ -520,7 +520,7 @@ class ChartController {
         toggleButton.style.cursor = 'pointer';
         
         this.toggleContainer.appendChild(toggleButton);
-        this.chartContainer.appendChild(this.toggleContainer);
+        document.getElementById('header-bar').appendChild(this.toggleContainer);
         
         // Add event listener
         toggleButton.addEventListener('click', () => {

@@ -27,7 +27,7 @@
             flex: 1;
             position: relative;
             width: 100%;
-            height: calc(70vh - 60px);
+            height: calc(70vh - 120px);
             background-color: #1a1a1a;
             border-bottom: 1px solid #2a2a2a;
         }
@@ -135,9 +135,83 @@
             background-color: #3a3a3a !important;
             border-color: #00ffff50 !important;
         }
+
+        #header-bar {
+            display: flex;
+            flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+            align-items: center; /* Vertically align items */
+            justify-content: flex-start; /* Align items to the start */
+            padding: 10px;
+            background-color: #1f1f1f; /* Slightly different from chart bg for distinction */
+            border-bottom: 1px solid #2a2a2a;
+            gap: 20px; /* Gap between direct children (selector-container and toggle-container) */
+        }
+
+        /* Adjustments for the containers within the header bar if needed */
+        /* The .selector-container already has flex styles from JS, ensure they don't conflict */
+        /* We might remove background and padding from .selector-container if header-bar provides it */
+        .selector-container {
+            /* background-color: transparent !important; /* Override JS style */
+            /* padding: 0 !important; */ /* Override JS style */
+            /* box-shadow: none !important; */ /* Override JS style */
+            /* These overrides might be needed if JS styles are too specific */
+        }
+
+        /* Style the toggle button to fit the dark theme */
+        /* Styles for .toggle-button are already present and seem mostly compatible.
+           We'll ensure padding, border-radius, and cursor are explicitly defined here
+           if not already covered or if needing override without !important for these specific properties.
+           The background, color, and border are already using !important from existing rules.
+        */
+        .toggle-button {
+            border-radius: 4px; /* Ensure border-radius */
+            padding: 8px 12px; /* Ensure padding */
+            cursor: pointer; /* Ensure cursor */
+            /* background-color, color, border, transition are already defined with !important */
+            /* transition: background-color 0.3s ease, border-color 0.3s ease; */ /* Already defined */
+        }
+
+        .toggle-button:hover {
+            /* background-color and border-color hover effects are already defined with !important */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #header-bar {
+                flex-direction: column; /* Stack items vertically */
+                align-items: stretch; /* Stretch items to full width */
+                gap: 10px; /* Reduce gap for stacked items */
+            }
+
+            .selector-container {
+                flex-direction: column; /* Stack selectors and labels */
+                align-items: stretch; /* Stretch items */
+                width: 100%; /* Take full width */
+                gap: 8px; /* Gap between label and select */
+            }
+
+            .selector-container label {
+                margin-bottom: 4px; /* Space below label */
+            }
+
+            .pair-select, .timeframe-select {
+                width: 100%; /* Make selects take full width */
+            }
+
+            .toggle-container {
+                width: 100%; /* Make toggle container take full width */
+                display: flex; /* To allow button centering or full width */
+            }
+
+            .toggle-button {
+                flex-grow: 1; /* Make button take full width if desired */
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
+    <div id="header-bar"></div>
     <div id="chart-container">
         <div id="loading">Loading...</div>
         <div id="error"></div>
