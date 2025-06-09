@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>XIAN DEX Chart</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,9 +16,11 @@
             --background-color: #1a1a1a;
             --text-color: #d4d4d4;
             --header-background: #1f1f1f;
-            --header-text-color: #00ffff; /* For labels like 'Trading Pair:' in .selector-container */
+            --header-text-color: #00ffff;
+            /* For labels like 'Trading Pair:' in .selector-container */
             --primary-accent: #00ffff;
-            --secondary-accent: #2a2a2a; /* Borders, grid lines */
+            --secondary-accent: #2a2a2a;
+            /* Borders, grid lines */
             --chart-background: #1a1a1a;
             --chart-grid-color: #2a2a2a;
             --chart-text-color: #d4d4d4;
@@ -31,20 +37,25 @@
             --button-background: #2a2a2a;
             --button-text-color: #00ffff;
             --button-hover-background: #3a3a3a;
-            --button-hover-border-color: rgba(0, 255, 255, 0.5); /* #00ffff50 */
+            --button-hover-border-color: rgba(0, 255, 255, 0.5);
+            /* #00ffff50 */
             --scrollbar-track: #1a1a1a;
             --scrollbar-thumb: #2a2a2a;
             --scrollbar-thumb-hover: #3a3a3a;
             --buy-color: #0066ff;
             --sell-color: #9933ff;
             --error-text-color: #ff0099;
-            --error-border-color: rgba(255, 0, 153, 0.31); /* #ff009950 */
-            --loader-text-color: #00ffff; /* Matches primary accent */
-            --link-color: #00ffff; /* For future links if any, or for the signer address */
+            --error-border-color: rgba(255, 0, 153, 0.31);
+            /* #ff009950 */
+            --loader-text-color: #00ffff;
+            /* Matches primary accent */
+            --link-color: #00ffff;
+            /* For future links if any, or for the signer address */
         }
 
         /* Theme Overrides */
-        .theme-dark-default { /* This class will be on body */
+        .theme-dark-default {
+            /* This class will be on body */
             /* Variables are already defined in :root, this is for explicit association */
         }
 
@@ -72,7 +83,8 @@
             --button-text-color: #ffffff;
             --button-hover-background: #0056b3;
             --button-hover-border-color: rgba(0, 91, 179, 0.5);
-            --scrollbar-track: #f0f0f0; /* Slightly different from body bg */
+            --scrollbar-track: #f0f0f0;
+            /* Slightly different from body bg */
             --scrollbar-thumb: #ced4da;
             --scrollbar-thumb-hover: #adb5bd;
             --buy-color: #28a745;
@@ -226,8 +238,10 @@
         }
 
         .trade-history-table th {
-            background-color: var(--secondary-accent); /* Table header distinct from main bg */
-            color: var(--header-text-color); /* Use header text color for TH text */
+            background-color: var(--secondary-accent);
+            /* Table header distinct from main bg */
+            color: var(--header-text-color);
+            /* Use header text color for TH text */
             padding: 12px;
             text-align: left;
             font-weight: 500;
@@ -242,7 +256,8 @@
         }
 
         .trade-history-table tr:hover {
-            background-color: var(--secondary-accent); /* Use secondary for hover */
+            background-color: var(--secondary-accent);
+            /* Use secondary for hover */
         }
 
         .buy-row td {
@@ -273,16 +288,20 @@
         }
 
         /* Loading and error states */
-        #loading, #error {
+        #loading,
+        #error {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             padding: 20px;
             border-radius: 8px;
-            background-color: var(--modal-background); /* Use modal bg for loader/error box */
-            border: 1px solid var(--modal-border-color); /* Use modal border */
-            color: var(--loader-text-color); /* Specific loader text color */
+            background-color: var(--modal-background);
+            /* Use modal bg for loader/error box */
+            border: 1px solid var(--modal-border-color);
+            /* Use modal border */
+            color: var(--loader-text-color);
+            /* Specific loader text color */
             font-size: 14px;
             display: none;
         }
@@ -293,8 +312,10 @@
         }
 
         /* Select dropdowns hover and focus states */
-        select:hover { /* Applies to #theme-select and .pair-select, .timeframe-select */
-            border-color: var(--input-focus-border-color) !important; /* Use focus border color for hover */
+        select:hover {
+            /* Applies to #theme-select and .pair-select, .timeframe-select */
+            border-color: var(--input-focus-border-color) !important;
+            /* Use focus border color for hover */
         }
 
         select:focus {
@@ -304,10 +325,12 @@
         }
 
         /* Toggle button styling */
-        .toggle-button { /* This class is dynamically added in chart.js */
+        .toggle-button {
+            /* This class is dynamically added in chart.js */
             background-color: var(--button-background) !important;
             color: var(--button-text-color) !important;
-            border: 1px solid var(--input-border-color) !important; /* Consistent border like inputs */
+            border: 1px solid var(--input-border-color) !important;
+            /* Consistent border like inputs */
             transition: all 0.3s ease !important;
         }
 
@@ -327,7 +350,8 @@
             gap: 20px;
         }
 
-        .header-icon { /* For the settings gear icon */
+        .header-icon {
+            /* For the settings gear icon */
             font-size: 24px;
             color: var(--text-color);
             cursor: pointer;
@@ -351,7 +375,8 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.6); /* Backdrop for modal */
+            background-color: rgba(0, 0, 0, 0.6);
+            /* Backdrop for modal */
         }
 
         .modal-content {
@@ -364,7 +389,7 @@
             max-width: 450px;
             border-radius: 8px;
             position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .close-button {
@@ -392,10 +417,12 @@
 
         #theme-selector-container label {
             font-weight: 500;
-            color: var(--modal-text-color); /* Ensure label uses modal text color */
+            color: var(--modal-text-color);
+            /* Ensure label uses modal text color */
         }
 
-        #theme-select { /* The dropdown in the modal */
+        #theme-select {
+            /* The dropdown in the modal */
             padding: 8px 12px;
             border-radius: 4px;
             border: 1px solid var(--input-border-color);
@@ -404,6 +431,7 @@
             font-family: 'Inter', sans-serif;
             flex-grow: 1;
         }
+
         /* End Settings Modal Styles */
 
         /* Adjustments for the containers within the header bar if needed */
@@ -411,21 +439,36 @@
         .selector-container {
             /* Existing JS styles: backgroundColor, padding, borderRadius, display, gap, alignItems */
             /* Override specific ones if needed, or ensure JS uses CSS variables */
-            background-color: var(--header-background) !important; /* Match header */
-            padding: 8px !important; /* JS sets padding */
-            border-radius: 4px !important; /* JS sets border-radius */
+            background-color: var(--header-background) !important;
+            /* Match header */
+            padding: 8px !important;
+            /* JS sets padding */
+            border-radius: 4px !important;
+            /* JS sets border-radius */
         }
-        .selector-container label { /* Labels like "Trading Pair:", "Timeframe:" */
-            color: var(--header-text-color) !important; /* Use header text color for these labels */
+
+        .selector-container label {
+            /* Labels like "Trading Pair:", "Timeframe:" */
+            color: var(--header-text-color) !important;
+            /* Use header text color for these labels */
             font-weight: 500 !important;
         }
-        .pair-select, .timeframe-select { /* Classes for selects created by JS */
-            padding: 8px 12px !important; /* JS sets padding */
-            border-radius: 4px !important; /* JS sets border-radius */
-            border: 1px solid var(--input-border-color) !important; /* Use themeable border */
-            background-color: var(--input-background) !important; /* Use themeable background */
-            color: var(--input-text-color) !important; /* Use themeable text color */
-            min-width: 150px; /* Adjusted min-width */
+
+        .pair-select,
+        .timeframe-select {
+            /* Classes for selects created by JS */
+            padding: 8px 12px !important;
+            /* JS sets padding */
+            border-radius: 4px !important;
+            /* JS sets border-radius */
+            border: 1px solid var(--input-border-color) !important;
+            /* Use themeable border */
+            background-color: var(--input-background) !important;
+            /* Use themeable background */
+            color: var(--input-text-color) !important;
+            /* Use themeable text color */
+            min-width: 150px;
+            /* Adjusted min-width */
         }
 
 
@@ -435,30 +478,36 @@
            if not already covered or if needing override without !important for these specific properties.
            The background, color, and border are already using !important from existing rules.
         */
-        .toggle-button { /* This is also for the Invert Pair button */
+        .toggle-button {
+            /* This is also for the Invert Pair button */
             border-radius: 4px;
             padding: 8px 12px;
             cursor: pointer;
             /* background-color, color, border are already using !important with var() above */
-            /* transition: background-color 0.3s ease, border-color 0.3s ease; */ /* Already defined */
+            /* transition: background-color 0.3s ease, border-color 0.3s ease; */
+            /* Already defined */
         }
 
         /* .toggle-button:hover is already defined above using vars */
 
         /* Trades Footer Styling */
         #trades-footer {
-            display: none; /* Hidden by default */
+            display: none;
+            /* Hidden by default */
         }
 
         @media (max-width: 768px) {
             #trade-history {
-                display: none !important; /* Ensure it's hidden */
+                display: none !important;
+                /* Ensure it's hidden */
             }
 
             #chart-container {
-                height: calc(100vh - 88px) !important; /* 44px header + 44px footer */
+                height: calc(100vh - 88px) !important;
+                /* 44px header + 44px footer */
                 margin-bottom: 44px;
-                border-bottom: none; /* Remove bottom border since trades pane is hidden */
+                border-bottom: none;
+                /* Remove bottom border since trades pane is hidden */
             }
 
             #trades-footer {
@@ -486,19 +535,25 @@
 
             /* Update chart container to account for footer */
             #chart-container {
-                height: calc(100vh - 104px); /* Account for header (60px) and footer (44px) */
-                margin-bottom: 44px; /* Height of the trades footer */
+                height: calc(100vh - 104px);
+                /* Account for header (60px) and footer (44px) */
+                margin-bottom: 44px;
+                /* Height of the trades footer */
             }
 
             /* Ensure the modal doesn't get hidden behind the footer */
             #trades-modal {
-                height: calc(100% - 44px); /* Full height minus footer */
-                bottom: 44px; /* Position above footer */
+                height: calc(100% - 44px);
+                /* Full height minus footer */
+                bottom: 44px;
+                /* Position above footer */
             }
 
             #modal-trades-content {
-                height: calc(100% - 60px); /* Subtract header height */
-                padding-bottom: 44px; /* Add padding to account for footer */
+                height: calc(100% - 60px);
+                /* Subtract header height */
+                padding-bottom: 44px;
+                /* Add padding to account for footer */
             }
         }
 
@@ -520,12 +575,14 @@
             from {
                 transform: translateY(100%);
             }
+
             to {
                 transform: translateY(0);
             }
         }
 
-        #trades-modal.hidden { /* Class to apply for slide down animation */
+        #trades-modal.hidden {
+            /* Class to apply for slide down animation */
             animation: slideDown 0.3s ease-out forwards;
         }
 
@@ -533,6 +590,7 @@
             from {
                 transform: translateY(0);
             }
+
             to {
                 transform: translateY(100%);
             }
@@ -620,12 +678,12 @@
             opacity: 0.7;
         }
 
-        #modal-trades-content .buy { 
-            color: var(--buy-color); 
+        #modal-trades-content .buy {
+            color: var(--buy-color);
         }
 
-        #modal-trades-content .sell { 
-            color: var(--sell-color); 
+        #modal-trades-content .sell {
+            color: var(--sell-color);
         }
 
         /* Responsive adjustments */
@@ -634,13 +692,16 @@
                 flex-direction: row;
                 align-items: center;
                 justify-content: flex-start;
-                padding: 4px 8px; /* Reduce padding */
-                gap: 4px; /* Reduce gap between items */
+                padding: 4px 8px;
+                /* Reduce padding */
+                gap: 4px;
+                /* Reduce gap between items */
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
-                height: 44px; /* Fixed height for header */
+                height: 44px;
+                /* Fixed height for header */
             }
 
             .selector-container {
@@ -648,8 +709,10 @@
                 flex-wrap: nowrap !important;
                 width: auto !important;
                 min-width: min-content;
-                padding: 4px !important; /* Reduce padding */
-                gap: 4px !important; /* Reduce gap */
+                padding: 4px !important;
+                /* Reduce padding */
+                gap: 4px !important;
+                /* Reduce gap */
             }
 
             /* Hide labels on mobile */
@@ -660,20 +723,27 @@
             /* Optimize select elements */
             .pair-select {
                 width: auto !important;
-                min-width: 100px !important; /* Reduce minimum width */
-                padding: 4px 6px !important; /* Reduce padding */
-                font-size: 13px !important; /* Slightly smaller font */
+                min-width: 100px !important;
+                /* Reduce minimum width */
+                padding: 4px 6px !important;
+                /* Reduce padding */
+                font-size: 13px !important;
+                /* Slightly smaller font */
             }
 
             .timeframe-select {
-                width: 60px !important; /* Reduce width */
-                padding: 4px 4px !important; /* Reduce padding */
-                font-size: 13px !important; /* Slightly smaller font */
+                width: 60px !important;
+                /* Reduce width */
+                padding: 4px 4px !important;
+                /* Reduce padding */
+                font-size: 13px !important;
+                /* Slightly smaller font */
             }
 
             /* Adjust settings icon */
             .header-icon {
-                font-size: 20px; /* Slightly smaller */
+                font-size: 20px;
+                /* Slightly smaller */
                 padding: 4px;
                 margin-left: 4px;
             }
@@ -686,7 +756,8 @@
 
             /* Update chart container height to account for smaller header */
             #chart-container {
-                height: calc(100vh - 88px); /* 44px header + 44px footer */
+                height: calc(100vh - 88px);
+                /* 44px header + 44px footer */
                 margin-bottom: 44px;
             }
         }
@@ -694,12 +765,15 @@
         /* Add smooth scrolling for the header */
         .selector-container {
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
         }
 
         .selector-container::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+            display: none;
+            /* Chrome, Safari and Opera */
         }
 
         /* Add this to your CSS */
@@ -714,6 +788,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="header-bar">
         <span id="settings-gear-icon" class="header-icon">&#9881;</span>
@@ -774,4 +849,5 @@
         </div>
     </div>
 </body>
-</html> 
+
+</html>
