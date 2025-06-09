@@ -1308,19 +1308,15 @@ class ChartController {
 
         // Potentially update chart theme options here if chart library supports it directly
         // For Lightweight Charts, this might involve re-applying options for colors
-        if (this.chart) {
-            // Example: Re-apply chart options based on new theme
-            // This is a placeholder. Actual theme application for the chart
-            // will require specific color mappings for each theme.
 
+        // Check if chart object is initialized
+        if (this.chart) {
             const computedStyles = getComputedStyle(document.body);
             const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
             const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
             const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
             const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
-            // Ensure watermark has low alpha, e.g., '12' for ~7% opacity if hex
             const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
-            // Ensure crosshair has some transparency, e.g., '40' for ~25% opacity if hex
             const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
 
             this.chart.applyOptions({
@@ -1333,18 +1329,18 @@ class ChartController {
                     horzLines: { color: chartGridColor },
                 },
                 watermark: {
-                    color: watermarkColor, // Use the calculated watermark color
+                    color: watermarkColor,
                 },
-                crosshair: { // Apply themed crosshair colors
+                crosshair: {
                     vertLine: { color: crosshairColor },
                     horzLine: { color: crosshairColor },
                 }
             });
 
-            const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
-            const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
-
+            // Check if candlestickSeries is initialized
             if (this.candlestickSeries) {
+                const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+                const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
                 this.candlestickSeries.applyOptions({
                     upColor: buyColor,
                     downColor: sellColor,
@@ -1355,9 +1351,7 @@ class ChartController {
                 });
             }
 
-            // Volume series base color is set in initSeries, individual bar colors in processSwapEvents.
-            // Calling loadChartData will re-process swaps and apply new volume bar colors.
-            if (this.currentPair) { // Only load chart data if a pair is selected
+            if (this.currentPair) {
                  this.loadChartData();
             }
         }
