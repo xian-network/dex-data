@@ -1419,7 +1419,7 @@ class ChartController {
         if (this.themeSelect) { // Check if themeSelect is initialized
             this.themeSelect.value = themeClassName;
         }
-        console.log(`Theme ${themeClassName} applied. Initial load: ${isInitialLoad}`);
+        console.log(`Theme ${themeClassName} applied. Initial load: ${isInitialLoad}`); 
 
         // Conditionally update chart style if not initial load and chart exists
         if (!isInitialLoad && this.chart) {
