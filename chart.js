@@ -501,47 +501,6 @@ class ChartController {
             invertButton.style.backgroundColor = '#3a3a3a';
         });
 
-        // Create swap button (right side)
-        const swapButton = document.createElement('button');
-        swapButton.textContent = 'Trade Now';
-        swapButton.className = 'swap-button';
-        swapButton.style.padding = '8px 24px'; // Increased padding
-        swapButton.style.backgroundColor = '#00C853'; // Bright green color
-        swapButton.style.border = 'none';
-        swapButton.style.borderRadius = '4px';
-        swapButton.style.color = '#ffffff';
-        swapButton.style.cursor = 'pointer';
-        swapButton.style.transition = 'all 0.2s ease';
-        swapButton.style.marginLeft = 'auto'; // Push to right side
-        swapButton.style.fontSize = '14px'; // Larger font
-        swapButton.style.fontWeight = '600'; // Make text bolder
-        swapButton.style.textTransform = 'uppercase'; // Make text uppercase
-        swapButton.style.letterSpacing = '0.5px'; // Add letter spacing
-        swapButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)'; // Add subtle shadow
-
-        // Enhanced hover effect for swap button
-        swapButton.addEventListener('mouseover', () => {
-            swapButton.style.backgroundColor = '#00E676'; // Lighter green on hover
-            swapButton.style.transform = 'translateY(-1px)'; // Slight lift effect
-            swapButton.style.boxShadow = '0 4px 8px rgba(0, 200, 83, 0.3)'; // Enhanced shadow on hover
-        });
-
-        swapButton.addEventListener('mouseout', () => {
-            swapButton.style.backgroundColor = '#00C853'; // Back to original color
-            swapButton.style.transform = 'translateY(0)'; // Remove lift effect
-            swapButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)'; // Back to original shadow
-        });
-
-        // Add click handler for swap button
-        swapButton.addEventListener('click', () => {
-            if (this.currentPair) {
-                const token0 = this.currentPair.token0;
-                const token1 = this.currentPair.token1;
-                const dexUrl = `https://snakexchange.org/?token0=${token0}&token1=${token1}`;
-                window.open(dexUrl, '_blank', 'noopener,noreferrer');
-            }
-        });
-        
         // Add event listeners
         this.pairSelect.addEventListener('change', () => {
             console.log(`Pair changed to: ${this.pairSelect.value}`);
@@ -606,7 +565,6 @@ class ChartController {
         
         // Add groups to container
         selectorContainer.appendChild(leftGroup);
-        selectorContainer.appendChild(swapButton);
         
         // Get header bar and set its styles
         const headerBar = document.getElementById('header-bar');
@@ -791,11 +749,6 @@ class ChartController {
         // Update chart title
         this.updateChartTitle();
         
-        // Create pair inversion toggle if it doesn't exist
-        // if (!this.toggleContainer) {
-        //     this.createPairToggle();
-        // }
-        
         // Load data for the current pair (this is the first call to loadChartData)
         await this.loadChartData(); // Ensure this is awaited
         
@@ -809,6 +762,56 @@ class ChartController {
             }
         }, 1000); // 250ms delay
         window.addEventListener('resize', debouncedResize);
+
+        // After creating the chart, add the trade button
+        const tradeButton = document.createElement('button');
+        tradeButton.textContent = 'Trade Now';
+        tradeButton.className = 'trade-button';
+        tradeButton.style.position = 'absolute';
+        tradeButton.style.top = '20px';
+        tradeButton.style.left = '20px';
+        tradeButton.style.zIndex = '3'; // Ensure it's above the chart
+        tradeButton.style.padding = '8px 24px';
+        tradeButton.style.backgroundColor = '#00C853';
+        tradeButton.style.border = 'none';
+        tradeButton.style.borderRadius = '4px';
+        tradeButton.style.color = '#ffffff';
+        tradeButton.style.cursor = 'pointer';
+        tradeButton.style.transition = 'all 0.2s ease';
+        tradeButton.style.fontSize = '14px';
+        tradeButton.style.fontWeight = '600';
+        tradeButton.style.textTransform = 'uppercase';
+        tradeButton.style.letterSpacing = '0.5px';
+        tradeButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)';
+
+        // Add hover effects
+        tradeButton.addEventListener('mouseover', () => {
+            tradeButton.style.backgroundColor = '#00E676';
+            tradeButton.style.transform = 'translateY(-1px)';
+            tradeButton.style.boxShadow = '0 4px 8px rgba(0, 200, 83, 0.3)';
+        });
+
+        tradeButton.addEventListener('mouseout', () => {
+            tradeButton.style.backgroundColor = '#00C853';
+            tradeButton.style.transform = 'translateY(0)';
+            tradeButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)';
+        });
+
+        // Add click handler
+        tradeButton.addEventListener('click', () => {
+            if (this.currentPair) {
+                const token0 = this.currentPair.token1;
+                const token1 = this.currentPair.token0;
+                const dexUrl = `https://snakexchange.org/?token0=${token0}&token1=${token1}`;
+                window.open(dexUrl, '_blank', 'noopener,noreferrer');
+            }
+        });
+
+        // Make sure the chart container is position: relative
+        this.chartContainer.style.position = 'relative';
+        
+        // Add the button to the chart container
+        this.chartContainer.appendChild(tradeButton);
     }
     
     updateChartTitle() {
@@ -835,51 +838,6 @@ class ChartController {
             }
         });
     }
-    
-    // createPairToggle() {
-    //     // Create toggle button
-    //     this.toggleContainer = document.createElement('div');
-    //     // this.toggleContainer.style.position = 'absolute'; // Removed
-    //     // this.toggleContainer.style.top = '10px'; // Removed
-    //     // this.toggleContainer.style.right = '10px'; // Removed
-    //     // this.toggleContainer.style.zIndex = '5'; // Removed
-        
-    //     const toggleButton = document.createElement('button');
-    //     toggleButton.textContent = 'Invert';
-    //     toggleButton.className = 'toggle-button';
-    //     toggleButton.style.padding = '8px 12px';
-    //     toggleButton.style.backgroundColor = '#f0f0f0';
-    //     toggleButton.style.border = '1px solid #ccc';
-    //     toggleButton.style.borderRadius = '4px';
-    //     toggleButton.style.cursor = 'pointer';
-        
-    //     this.toggleContainer.appendChild(toggleButton);
-    //     document.getElementById('header-bar').appendChild(this.toggleContainer);
-        
-    //     // Add event listener
-    //     toggleButton.addEventListener('click', async () => {
-    //         this.isInverted = !this.isInverted;
-    //         toggleButton.textContent = 'Invert';
-    //         this.updateChartTitle();
-    //         this.updateQueryParams();
-    //         this.updateTradeHistory();
-            
-    //         // Reset price scale
-    //         if (this.candlestickSeries) {
-    //             this.chart.priceScale('right').applyOptions({
-    //                 autoScale: true,
-    //                 scaleMargins: {
-    //                     top: 0.1,
-    //                     bottom: 0.3,
-    //                 }
-    //             });
-    //         }
-            
-    //         // Reload data and fit content
-    //         await this.loadChartData();
-    //         this.chart.timeScale().fitContent();
-    //     });
-    // }
     
     async fetchSwapEvents() {
         if (!this.currentPair) {
@@ -1634,7 +1592,7 @@ class ChartController {
                 vertLines: { color: chartGridColor },
                 horzLines: { color: chartGridColor },
             },
-            watermark: { // Watermark options are part of top-level options, not layout
+            watermark: {
                 color: watermarkColor,
             },
             crosshair: {
