@@ -826,17 +826,40 @@ class ChartController {
             
         console.log(`Setting chart title to: ${title}`);
         
-        this.chart.applyOptions({
-            watermark: {
-                visible: true,
-                text: title,
-                fontSize: 24,
+        // Get computed styles for consistent theming
+        const computedStyles = getComputedStyle(document.body);
+        const primaryAccent = computedStyles.getPropertyValue('--primary-accent').trim() || '#00ffff';
+        
+        // Create watermark if it doesn't exist
+        if (!this.watermark) {
+            const { createTextWatermark } = LightweightCharts;
+            this.watermark = createTextWatermark(this.chart.panes()[0], {
                 horzAlign: 'center',
                 vertAlign: 'center',
-                color: 'rgba(0, 255, 255, 0.07)', // Very subtle cyan
-                fontFamily: "'Inter', 'Roboto', sans-serif",
-            }
-        });
+                lines: [
+                    {
+                        text: title,
+                        color: `${primaryAccent}40`, // 25% opacity
+                        fontSize: 48,
+                        fontFamily: "'Inter', 'Roboto', sans-serif",
+                        fontStyle: 'bold',
+                    }
+                ],
+            });
+        } else {
+            // Update existing watermark options
+            this.watermark.applyOptions({
+                lines: [
+                    {
+                        text: title,
+                        color: `${primaryAccent}40`, // 25% opacity
+                        fontSize: 48,
+                        fontFamily: "'Inter', 'Roboto', sans-serif",
+                        fontStyle: 'bold',
+                    }
+                ],
+            });
+        }
     }
     
     async fetchSwapEvents() {
@@ -1215,8 +1238,8 @@ class ChartController {
             borderDownColor: 'var(--sell-color)',
             priceFormat: {
                 type: 'price',
-                precision: 4,
-                minMove: 0.0001,
+                precision: 8,
+                minMove: 0.00000001,
             },
             priceScaleId: 'right',
         });
@@ -1238,7 +1261,6 @@ class ChartController {
 
         const secondPane = this.chart.panes()[1];
         secondPane.setHeight(100);
-
 
         // Configure the main price scale (right side)
         this.chart.priceScale('right').applyOptions({
