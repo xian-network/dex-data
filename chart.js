@@ -1,3 +1,14 @@
+// Debounce helper function
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
+
 class ChartController {
     constructor() {
         this.GRAPHQL_ENDPOINT = 'https://node.xian.org/graphql';
@@ -466,14 +477,15 @@ class ChartController {
         this.loadChartData();
         
         // Handle window resizing
-        window.addEventListener('resize', () => {
+        const debouncedResize = debounce(() => {
             if (this.chart) {
                 this.chart.applyOptions({
                     width: this.chartContainer.clientWidth,
                     height: this.chartContainer.clientHeight
                 });
             }
-        });
+        }, 250); // 250ms delay
+        window.addEventListener('resize', debouncedResize);
     }
     
     updateChartTitle() {
