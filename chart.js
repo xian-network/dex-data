@@ -405,7 +405,7 @@ class ChartController {
         }
     }
     
-    initializeChart() {
+    async initializeChart() { // Made async
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
             return;
