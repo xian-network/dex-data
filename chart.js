@@ -265,10 +265,10 @@ class ChartController {
         
         this.pairSelect = document.createElement('select');
         this.pairSelect.className = 'pair-select';
-        this.pairSelect.style.padding = '8px 12px';
-        this.pairSelect.style.borderRadius = '4px';
-        this.pairSelect.style.border = '1px solid #3a3a3a';
-        this.pairSelect.style.minWidth = '200px';
+        // this.pairSelect.style.padding = '8px 12px'; // Handled by CSS
+        // this.pairSelect.style.borderRadius = '4px'; // Handled by CSS
+        // this.pairSelect.style.border = '1px solid #3a3a3a'; // Handled by CSS
+        // this.pairSelect.style.minWidth = '200px'; // Handled by CSS
         
         // Timeframe selector
         const timeframeLabel = document.createElement('label');
@@ -278,9 +278,9 @@ class ChartController {
         
         this.timeframeSelect = document.createElement('select');
         this.timeframeSelect.className = 'timeframe-select';
-        this.timeframeSelect.style.padding = '8px 12px';
-        this.timeframeSelect.style.borderRadius = '4px';
-        this.timeframeSelect.style.border = '1px solid #3a3a3a';
+        // this.timeframeSelect.style.padding = '8px 12px'; // Handled by CSS
+        // this.timeframeSelect.style.borderRadius = '4px'; // Handled by CSS
+        // this.timeframeSelect.style.border = '1px solid #3a3a3a'; // Handled by CSS
         
         // Add timeframe options
         this.timeframes.forEach(tf => {
@@ -430,12 +430,12 @@ class ChartController {
             crosshair: {
                 mode: 1,
                 vertLine: {
-                    color: '#00ffff40',
+                    color: 'rgba(0, 163, 255, 0.25)', // Updated
                     width: 1,
                     style: 1,
                 },
                 horzLine: {
-                    color: '#00ffff40',
+                    color: 'rgba(0, 163, 255, 0.25)', // Updated
                     width: 1,
                     style: 1,
                 }
@@ -492,10 +492,10 @@ class ChartController {
             watermark: {
                 visible: true,
                 text: title,
-                fontSize: 24,
+                fontSize: 20, // Updated
                 horzAlign: 'center',
                 vertAlign: 'center',
-                color: 'rgba(0, 255, 255, 0.07)', // Very subtle cyan
+                color: 'rgba(0, 163, 255, 0.07)', // Updated
                 fontFamily: "'Inter', 'Roboto', sans-serif",
             }
         });
@@ -863,7 +863,8 @@ class ChartController {
                 volumes.push({
                     time: timestamp,
                     value: totalVolume,
-                    color: firstCandle.close >= firstCandle.open ? '#0066ff80' : '#9933ff80'
+                    // Updated volume colors
+                    color: firstCandle.close >= firstCandle.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
                 });
                 
                 if (isCurrentInterval) currentCandle = firstCandle;
@@ -892,7 +893,8 @@ class ChartController {
                     volumes.push({
                         time: timestamp,
                         value: totalVolume,
-                        color: candle.close >= candle.open ? '#0066ff80' : '#9933ff80'
+                        // Updated volume colors
+                        color: candle.close >= candle.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)'
                     });
                     
                     if (isCurrentInterval) {
@@ -915,7 +917,7 @@ class ChartController {
                     volumes.push({
                         time: timestamp,
                         value: 0,
-                        color: '#80808040'
+                        color: 'rgba(84, 94, 112, 0.4)' // Updated empty volume color
                     });
                     
                     if (isCurrentInterval) {
@@ -950,13 +952,13 @@ class ChartController {
 
         // Create candlestick series
         this.candlestickSeries = this.chart.addCandlestickSeries({
-            upColor: '#0066ff',
-            downColor: '#9933ff',
+            upColor: '#26A69A', // Updated
+            downColor: '#EF5350', // Updated
             borderVisible: true,
-            wickUpColor: '#0066ff',
-            wickDownColor: '#9933ff',
-            borderUpColor: '#0066ff',
-            borderDownColor: '#9933ff',
+            wickUpColor: '#26A69A', // Updated
+            wickDownColor: '#EF5350', // Updated
+            borderUpColor: '#26A69A', // Updated
+            borderDownColor: '#EF5350', // Updated
             priceFormat: {
                 type: 'price',
                 precision: 4,
@@ -1185,12 +1187,12 @@ class ChartController {
         this.volumeTooltip.style.position = 'absolute';
         this.volumeTooltip.style.display = 'none';
         this.volumeTooltip.style.padding = '8px 12px';
-        this.volumeTooltip.style.backgroundColor = '#2a2a2a';
-        this.volumeTooltip.style.color = '#d4d4d4';
+        this.volumeTooltip.style.backgroundColor = '#1E222B'; // Updated
+        this.volumeTooltip.style.color = '#E0E0E0'; // Updated
         this.volumeTooltip.style.borderRadius = '4px';
         this.volumeTooltip.style.fontSize = '12px';
         this.volumeTooltip.style.fontFamily = "'Inter', 'Roboto', sans-serif";
-        this.volumeTooltip.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.3)';
+        this.volumeTooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)'; // Updated
         this.volumeTooltip.style.zIndex = '10';
         this.volumeTooltip.style.pointerEvents = 'none'; // Don't interfere with mouse events
         this.chartContainer.appendChild(this.volumeTooltip);
@@ -1223,7 +1225,8 @@ class ChartController {
                 
                 // Determine color based on candlestick
                 const candle = this.candlestickSeries.dataByTime().get(time);
-                const color = candle && candle.close >= candle.open ? '#0066ff' : '#9933ff';
+                // Color for text in tooltip will now automatically use new candle colors
+                const color = candle && candle.close >= candle.open ? this.candlestickSeries.options().upColor : this.candlestickSeries.options().downColor;
                 
                 // Position the tooltip
                 const x = param.point.x;

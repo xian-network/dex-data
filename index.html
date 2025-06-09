@@ -15,9 +15,11 @@
         }
 
         body {
-            background-color: #1a1a1a;
-            color: #d4d4d4;
+            background-color: #14181F; /* Updated */
+            color: #E0E0E0; /* Updated */
             font-family: 'Inter', sans-serif;
+            font-size: 14px; /* Added */
+            line-height: 1.5; /* Added */
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -28,49 +30,64 @@
             position: relative;
             width: 100%;
             height: calc(70vh - 120px);
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #2a2a2a;
+            background-color: #14181F; /* Updated - same as body */
+            border-bottom: 1px solid #333A47; /* Updated */
         }
 
         #trade-history {
             height: 30vh;
             overflow-y: auto;
-            background-color: #1a1a1a;
+            background-color: #14181F; /* Updated - same as body */
             padding: 20px;
         }
 
         .trade-history-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px; /* Updated */
         }
 
         .trade-history-table th {
-            background-color: #2a2a2a;
-            color: #00ffff;
-            padding: 12px;
+            background-color: #333A47; /* Updated */
+            color: #00A3FF; /* Updated */
+            padding: 10px 12px; /* Updated */
             text-align: left;
-            font-weight: 500;
+            font-weight: 600; /* Updated */
+            font-size: 12px; /* Added */
+            letter-spacing: 0.5px; /* Added */
+            text-transform: uppercase; /* Added */
             position: sticky;
             top: 0;
             z-index: 10;
         }
 
         .trade-history-table td {
-            padding: 8px 12px;
-            border-bottom: 1px solid #2a2a2a;
+            padding: 10px 12px; /* Updated */
+            border-bottom: 1px solid #333A47; /* Updated */
+            line-height: 1.4; /* Added */
         }
 
         .trade-history-table tr:hover {
-            background-color: #2a2a2a;
+            background-color: #252B36; /* Updated */
         }
 
         .buy-row td {
-            color: #0066ff;
+            color: #26A69A; /* Updated */
         }
 
         .sell-row td {
-            color: #9933ff;
+            color: #EF5350; /* Updated */
+        }
+
+        .trade-history-table .trade-signer a { /* Added new rule */
+            color: #00A3FF;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .trade-history-table .trade-signer a:hover { /* Added new rule */
+            text-decoration: underline;
+            color: #008BCC;
         }
 
         /* Scrollbar styling */
@@ -80,16 +97,16 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #1a1a1a;
+            background: #14181F; /* Updated */
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #2a2a2a;
+            background: #333A47; /* Updated */
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #3a3a3a;
+            background: #4C5566; /* Updated */
         }
 
         /* Loading and error states */
@@ -100,40 +117,72 @@
             transform: translate(-50%, -50%);
             padding: 20px;
             border-radius: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            color: #00ffff;
-            font-size: 14px;
+            background-color: #252B36; /* Updated */
+            border: 1px solid #333A47; /* Updated */
+            color: #00A3FF; /* Updated for loading */
+            font-size: 14px; /* Confirmed */
+            line-height: 1.6; /* Added */
+            text-align: center; /* Added */
             display: none;
         }
 
         #error {
-            color: #ff0099;
-            border-color: #ff009950;
+            color: #FF5252; /* Updated */
+            border-color: rgba(255, 82, 82, 0.31); /* Updated */
+            text-align: center; /* Added */
         }
 
         /* Select dropdowns hover and focus states */
+        /* General select styling first */
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-color: #1E222B;
+            color: #E0E0E0;
+            border: 1px solid #333A47;
+            border-radius: 4px;
+            padding: 8px 28px 8px 12px;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23E0E0E0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 10px 10px;
+            min-width: 200px; /* Moved from JS */
+        }
+
         select:hover {
-            border-color: #00ffff50 !important;
+            border-color: rgba(0, 163, 255, 0.5) !important; /* Updated opacity */
         }
 
         select:focus {
             outline: none;
-            border-color: #00ffff !important;
-            box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+            border-color: #00A3FF !important; /* Updated */
+            box-shadow: 0 0 0 2px rgba(0, 163, 255, 0.2) !important; /* Updated */
         }
 
         /* Toggle button styling */
         .toggle-button {
-            background-color: #2a2a2a !important;
-            color: #00ffff !important;
-            border: 1px solid #3a3a3a !important;
+            background-color: #252B36 !important; /* Updated */
+            color: #00A3FF !important; /* Updated */
+            border: 1px solid #333A47 !important; /* Updated */
+            font-size: 13px; /* Added */
+            padding: 8px 12px; /* Ensured */
+            border-radius: 4px; /* Ensured */
             transition: all 0.3s ease !important;
         }
 
         .toggle-button:hover {
-            background-color: #3a3a3a !important;
-            border-color: #00ffff50 !important;
+            background-color: #333A47 !important; /* Updated */
+            border-color: rgba(0, 163, 255, 0.5) !important; /* Updated opacity */
+        }
+
+        .toggle-button:active {
+            background-color: #3A4250 !important;
+        }
+
+        .toggle-button:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 2px rgba(0, 163, 255, 0.2) !important;
         }
 
         #header-bar {
@@ -141,20 +190,30 @@
             flex-wrap: wrap; /* Allow items to wrap on smaller screens */
             align-items: center; /* Vertically align items */
             justify-content: flex-start; /* Align items to the start */
-            padding: 10px;
-            background-color: #1f1f1f; /* Slightly different from chart bg for distinction */
-            border-bottom: 1px solid #2a2a2a;
-            gap: 20px; /* Gap between direct children (selector-container and toggle-container) */
+            padding: 10px 15px; /* Updated */
+            background-color: #1E222B; /* Updated */
+            border-bottom: 1px solid #333A47; /* Updated */
+            gap: 15px; /* Updated */
         }
 
         /* Adjustments for the containers within the header bar if needed */
         /* The .selector-container already has flex styles from JS, ensure they don't conflict */
         /* We might remove background and padding from .selector-container if header-bar provides it */
         .selector-container {
-            /* background-color: transparent !important; /* Override JS style */
+            background-color: #1E222B !important; /* Updated - Override JS style */
             /* padding: 0 !important; */ /* Override JS style */
             /* box-shadow: none !important; */ /* Override JS style */
             /* These overrides might be needed if JS styles are too specific */
+        }
+
+        .selector-container label { /* Added new rule */
+            font-size: 12px; /* Added */
+            font-weight: 500; /* Added */
+        }
+
+        .pair-select, .timeframe-select {
+            font-size: 13px; /* Added */
+            /* Specific overrides for select if needed, otherwise inherits from global select */
         }
 
         /* Style the toggle button to fit the dark theme */
@@ -164,16 +223,13 @@
            The background, color, and border are already using !important from existing rules.
         */
         .toggle-button {
-            border-radius: 4px; /* Ensure border-radius */
-            padding: 8px 12px; /* Ensure padding */
+            /* border-radius: 4px; */ /* Moved to main rule */
+            /* padding: 8px 12px; */ /* Moved to main rule */
             cursor: pointer; /* Ensure cursor */
             /* background-color, color, border, transition are already defined with !important */
             /* transition: background-color 0.3s ease, border-color 0.3s ease; */ /* Already defined */
         }
-
-        .toggle-button:hover {
-            /* background-color and border-color hover effects are already defined with !important */
-        }
+        /* .toggle-button:hover is already defined above */
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
