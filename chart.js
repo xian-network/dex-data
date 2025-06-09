@@ -834,6 +834,13 @@ class ChartController {
         const volumes = [];
         let previousClose = null;
         let currentCandle = null;
+
+        // Get current theme colors for volume bars
+        const computedBodyStyles = getComputedStyle(document.body);
+        const buyColor = computedBodyStyles.getPropertyValue('--buy-color').trim();
+        const sellColor = computedBodyStyles.getPropertyValue('--sell-color').trim();
+        const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80'; // Append alpha, provide fallback
+        const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80'; // Append alpha, provide fallback
         
         // Process each interval
         for (let i = 0; i < intervals.length; i++) {
@@ -877,7 +884,7 @@ class ChartController {
                 volumes.push({
                     time: timestamp,
                     value: totalVolume,
-                    color: firstCandle.close >= firstCandle.open ? '#0066ff80' : '#9933ff80'
+                    color: firstCandle.close >= firstCandle.open ? volumeUpColor : volumeDownColor
                 });
                 
                 if (isCurrentInterval) currentCandle = firstCandle;
@@ -906,7 +913,7 @@ class ChartController {
                     volumes.push({
                         time: timestamp,
                         value: totalVolume,
-                        color: candle.close >= candle.open ? '#0066ff80' : '#9933ff80'
+                        color: candle.close >= candle.open ? volumeUpColor : volumeDownColor
                     });
                     
                     if (isCurrentInterval) {
@@ -1305,8 +1312,54 @@ class ChartController {
             // Example: Re-apply chart options based on new theme
             // This is a placeholder. Actual theme application for the chart
             // will require specific color mappings for each theme.
-            // For now, we assume CSS handles chart theming via body class.
-            console.log('Chart detected, theme change may require chart re-styling (currently handled by CSS).');
+
+            const computedStyles = getComputedStyle(document.body);
+            const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
+            const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
+            const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
+            const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+            // Ensure watermark has low alpha, e.g., '12' for ~7% opacity if hex
+            const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
+            // Ensure crosshair has some transparency, e.g., '40' for ~25% opacity if hex
+            const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
+
+            this.chart.applyOptions({
+                layout: {
+                    background: { color: chartBackgroundColor },
+                    textColor: chartTextColor,
+                },
+                grid: {
+                    vertLines: { color: chartGridColor },
+                    horzLines: { color: chartGridColor },
+                },
+                watermark: {
+                    color: watermarkColor, // Use the calculated watermark color
+                },
+                crosshair: { // Apply themed crosshair colors
+                    vertLine: { color: crosshairColor },
+                    horzLine: { color: crosshairColor },
+                }
+            });
+
+            const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+            const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
+
+            if (this.candlestickSeries) {
+                this.candlestickSeries.applyOptions({
+                    upColor: buyColor,
+                    downColor: sellColor,
+                    wickUpColor: buyColor,
+                    wickDownColor: sellColor,
+                    borderUpColor: buyColor,
+                    borderDownColor: sellColor,
+                });
+            }
+
+            // Volume series base color is set in initSeries, individual bar colors in processSwapEvents.
+            // Calling loadChartData will re-process swaps and apply new volume bar colors.
+            if (this.currentPair) { // Only load chart data if a pair is selected
+                 this.loadChartData();
+            }
         }
     }
 
