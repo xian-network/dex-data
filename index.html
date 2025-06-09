@@ -215,7 +215,7 @@
         #trade-history {
             height: 30vh;
             overflow-y: auto;
-            background-color: var(--background-color); /* Use main background */
+            background-color: var(--background-color);
             padding: 20px;
         }
 
@@ -445,38 +445,272 @@
 
         /* .toggle-button:hover is already defined above using vars */
 
-        /* Responsive adjustments */
+        /* Trades Footer Styling */
+        #trades-footer {
+            display: none; /* Hidden by default */
+        }
+
         @media (max-width: 768px) {
-            #header-bar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
+            #trade-history {
+                display: none !important; /* Ensure it's hidden */
             }
 
-            .selector-container {
-                flex-direction: column;
-                align-items: stretch;
+            #chart-container {
+                height: calc(100vh - 88px) !important; /* 44px header + 44px footer */
+                margin-bottom: 44px;
+                border-bottom: none; /* Remove bottom border since trades pane is hidden */
+            }
+
+            #trades-footer {
+                display: flex;
+                background-color: var(--header-background);
+                color: var(--primary-accent);
+                padding: 12px 20px;
+                text-align: center;
+                border-top: 1px solid var(--secondary-accent);
+                position: fixed;
+                bottom: 0;
+                left: 0;
                 width: 100%;
+                z-index: 100;
+                cursor: pointer;
+                height: 44px;
+                justify-content: center;
+                align-items: center;
                 gap: 8px;
             }
 
+            #trades-footer .chevron-up {
+                font-size: 1.2em;
+            }
+
+            /* Update chart container to account for footer */
+            #chart-container {
+                height: calc(100vh - 104px); /* Account for header (60px) and footer (44px) */
+                margin-bottom: 44px; /* Height of the trades footer */
+            }
+
+            /* Ensure the modal doesn't get hidden behind the footer */
+            #trades-modal {
+                height: calc(100% - 44px); /* Full height minus footer */
+                bottom: 44px; /* Position above footer */
+            }
+
+            #modal-trades-content {
+                height: calc(100% - 60px); /* Subtract header height */
+                padding-bottom: 44px; /* Add padding to account for footer */
+            }
+        }
+
+        /* Trades Modal Styling */
+        #trades-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-color);
+            z-index: 1000;
+            animation: slideUp 0.3s ease-out forwards;
+            overflow-y: hidden;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        #trades-modal.hidden { /* Class to apply for slide down animation */
+            animation: slideDown 0.3s ease-out forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(100%);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--header-background);
+            border-bottom: 1px solid var(--secondary-accent);
+            color: var(--primary-accent);
+        }
+
+        .modal-header h2 {
+            font-size: 1.2em;
+            margin: 0;
+            color: var(--primary-accent);
+        }
+
+        #modal-close-button {
+            background: none;
+            border: none;
+            color: var(--primary-accent);
+            font-size: 1.8em;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        #modal-close-button:hover {
+            color: var(--modal-close-hover-color);
+        }
+
+        #modal-trades-content {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+            padding: 10px;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        #modal-trades-content .trade-entry {
+            padding: 8px;
+            border-bottom: 1px solid var(--secondary-accent);
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            position: relative;
+        }
+
+        #modal-trades-content .trade-entry:hover {
+            background-color: var(--secondary-accent);
+        }
+
+        #modal-trades-content .trade-entry:active {
+            opacity: 0.8;
+        }
+
+        /* Add a subtle indicator that the item is clickable */
+        #modal-trades-content .trade-entry::after {
+            content: '→';
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-accent);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        #modal-trades-content .trade-entry:hover::after {
+            opacity: 0.5;
+        }
+
+        #modal-trades-content .trade-entry .trade-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        #modal-trades-content .trade-entry .trade-meta {
+            font-size: 0.85em;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        #modal-trades-content .buy { 
+            color: var(--buy-color); 
+        }
+
+        #modal-trades-content .sell { 
+            color: var(--sell-color); 
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #header-bar {
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 4px 8px; /* Reduce padding */
+                gap: 4px; /* Reduce gap between items */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                height: 44px; /* Fixed height for header */
+            }
+
+            .selector-container {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                width: auto !important;
+                min-width: min-content;
+                padding: 4px !important; /* Reduce padding */
+                gap: 4px !important; /* Reduce gap */
+            }
+
+            /* Hide labels on mobile */
             .selector-container label {
-                margin-bottom: 4px;
+                display: none !important;
             }
 
-            .pair-select, .timeframe-select {
-                width: 100%;
+            /* Optimize select elements */
+            .pair-select {
+                width: auto !important;
+                min-width: 100px !important; /* Reduce minimum width */
+                padding: 4px 6px !important; /* Reduce padding */
+                font-size: 13px !important; /* Slightly smaller font */
             }
 
-            .toggle-container { /* Container for Invert Pair button */
-                width: 100%;
-                display: flex;
+            .timeframe-select {
+                width: 60px !important; /* Reduce width */
+                padding: 4px 4px !important; /* Reduce padding */
+                font-size: 13px !important; /* Slightly smaller font */
             }
 
-            .toggle-button { /* Invert Pair button specifically */
-                flex-grow: 1;
-                text-align: center;
+            /* Adjust settings icon */
+            .header-icon {
+                font-size: 20px; /* Slightly smaller */
+                padding: 4px;
+                margin-left: 4px;
             }
+
+            /* Adjust toggle button */
+            .toggle-button {
+                padding: 4px 8px !important;
+                font-size: 13px !important;
+            }
+
+            /* Update chart container height to account for smaller header */
+            #chart-container {
+                height: calc(100vh - 88px); /* 44px header + 44px footer */
+                margin-bottom: 44px;
+            }
+        }
+
+        /* Add smooth scrolling for the header */
+        .selector-container {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        .selector-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+
+        /* Add this to your CSS */
+        .trade-signer a {
+            color: var(--link-color);
+            text-decoration: none;
+        }
+
+        .trade-signer a:hover {
+            text-decoration: underline;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -504,6 +738,10 @@
             </tbody>
         </table>
     </div>
+    <div id="trades-footer">
+        <span>Trades</span>
+        <span class="chevron-up">&#9650;</span> <!-- Unicode for UP-POINTING TRIANGLE -->
+    </div>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart.js"></script>
 
@@ -515,11 +753,24 @@
             <div id="theme-selector-container">
                 <label for="theme-select">Theme:</label>
                 <select id="theme-select">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
+                    <option value="theme-dark-default">Dark Default</option>
+                    <option value="theme-light">Light Mode</option>
+                    <option value="theme-ocean-blue">Ocean Blue</option>
+                    <option value="theme-forest-green">Forest Green</option>
+                    <option value="theme-royal-purple">Royal Purple</option>
                 </select>
             </div>
-            <!-- Additional settings can be added here -->
+        </div>
+    </div>
+
+    <!-- Trades Modal -->
+    <div id="trades-modal">
+        <div class="modal-header">
+            <h2>All Trades</h2>
+            <button id="modal-close-button">&times;</button>
+        </div>
+        <div id="modal-trades-content">
+            <!-- Trades will be populated here by JavaScript -->
         </div>
     </div>
 </body>

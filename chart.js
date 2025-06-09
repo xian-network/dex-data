@@ -19,6 +19,9 @@ class ChartController {
         this.rawTrades = []; // Store raw trade data for the history pane
         // Add timeframe configuration
         this.timeframes = [
+            { label: '5m', minutes: 5 },
+            { label: '10m', minutes: 10 },
+            { label: '15m', minutes: 15 },
             { label: '30m', minutes: 30 },
             { label: '1h', minutes: 60 },
             { label: '4h', minutes: 240 },
@@ -50,6 +53,150 @@ class ChartController {
 
         // Chart initialization will happen after loading pairs
         this.loadPairsAndInitialize(); // This is now async
+
+        // Get references to trades modal elements
+        this.tradesFooter = document.getElementById('trades-footer');
+        this.tradesModal = document.getElementById('trades-modal');
+        this.modalCloseButton = document.getElementById('modal-close-button');
+        this.modalTradesContent = document.getElementById('modal-trades-content');
+
+        // Add event listeners for modal
+        if (this.tradesFooter) {
+            this.tradesFooter.addEventListener('click', () => this.openTradesModal());
+        }
+        if (this.modalCloseButton) {
+            this.modalCloseButton.addEventListener('click', () => this.closeTradesModal());
+        }
+        if (this.tradesModal) {
+           this.tradesModal.addEventListener('click', (event) => {
+               if (event.target === this.tradesModal) { // Check if the click is on the backdrop itself
+                   this.closeTradesModal();
+               }
+           });
+        }
+    }
+
+    openTradesModal() {
+        if (!this.tradesModal) return;
+        this.populateTradesModal(); // Populate content first
+        this.tradesModal.classList.remove('hidden'); // Remove .hidden for slideDown if present
+        this.tradesModal.style.display = 'block'; // Triggers slideUp animation
+        document.body.style.overflow = 'hidden'; // Prevent body scrolling
+    }
+
+    closeTradesModal() {
+        if (!this.tradesModal || this.tradesModal.style.display === 'none') return;
+
+        const handleAnimationEnd = () => {
+            // Only hide if the .hidden class is still present (i.e., not re-opened)
+            if (this.tradesModal.classList.contains('hidden')) {
+                this.tradesModal.style.display = 'none';
+            }
+            this.tradesModal.removeEventListener('animationend', handleAnimationEnd); // Clean up listener
+        };
+
+        this.tradesModal.addEventListener('animationend', handleAnimationEnd);
+        this.tradesModal.classList.add('hidden'); // Trigger slideDown animation
+
+        // Fallback: if animation doesn't fire for some reason
+        setTimeout(() => {
+             if (this.tradesModal.classList.contains('hidden')) {
+                  this.tradesModal.style.display = 'none';
+             }
+             document.body.style.overflow = ''; // Ensure body scrolling is restored
+        }, 300); // Duration of animation in ms, should match CSS
+
+        document.body.style.overflow = ''; // Restore body scrolling
+    }
+
+    populateTradesModal() {
+        if (!this.modalTradesContent || !this.currentPair) return;
+
+        this.modalTradesContent.innerHTML = '';
+
+        if (!this.rawTrades || this.rawTrades.length === 0) {
+            this.modalTradesContent.innerHTML = '<p style="text-align: center; padding: 20px;">No trades found for this pair.</p>';
+            return;
+        }
+
+        const sortedTrades = [...this.rawTrades].sort((a, b) => b.timestamp - a.timestamp);
+
+        const token0 = this.tokens.get(this.currentPair.token0);
+        const token1 = this.tokens.get(this.currentPair.token1);
+        const symbol0 = token0?.symbol || this.currentPair.token0;
+        const symbol1 = token1?.symbol || this.currentPair.token1;
+
+        sortedTrades.forEach(trade => {
+            const tradeDiv = document.createElement('div');
+            tradeDiv.className = 'trade-entry';
+
+            const time = trade.timestamp;
+            const data = trade.data;
+
+            const hours = time.getUTCHours();
+            const minutes = time.getUTCMinutes();
+            const seconds = time.getUTCSeconds();
+            const day = time.getUTCDate();
+            const month = time.getUTCMonth() + 1;
+            const year = time.getUTCFullYear();
+
+            const formattedTime = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} UTC`;
+
+            const tradeType = this.determineTradeType(data);
+
+            const amount0In = parseFloat(data.amount0In) || 0;
+            const amount0Out = parseFloat(data.amount0Out) || 0;
+            const amount1In = parseFloat(data.amount1In) || 0;
+            const amount1Out = parseFloat(data.amount1Out) || 0;
+
+            let price = 0;
+            if (amount0Out > 0 && amount1In > 0) price = amount1In / amount0Out;
+            else if (amount0In > 0 && amount1Out > 0) price = amount1Out / amount0In;
+            if (this.isInverted && price > 0) price = 1 / price;
+
+            let amount, value, amountSymbol, valueSymbol;
+            if (tradeType === 'BUY') {
+                amount = this.isInverted ? amount1Out : amount0Out;
+                value = this.isInverted ? amount0In : amount1In;
+                amountSymbol = this.isInverted ? symbol1 : symbol0;
+                valueSymbol = this.isInverted ? symbol0 : symbol1;
+            } else { // SELL
+                amount = this.isInverted ? amount1In : amount0In;
+                value = this.isInverted ? amount0Out : amount1Out;
+                amountSymbol = this.isInverted ? symbol0 : symbol1;
+                valueSymbol = this.isInverted ? symbol1 : symbol0;
+            }
+
+            const signer = trade.signer || 'N/A';
+            const signerShort = signer.length > 12 ? `${signer.slice(0, 6)}...${signer.slice(-4)}` : signer;
+
+            tradeDiv.innerHTML = `
+                <div class="trade-details">
+                    <span class="${tradeType.toLowerCase()}">${tradeType} ${amount.toFixed(4)} ${amountSymbol}</span>
+                    <span>Price: ${price.toFixed(6)} ${this.isInverted ? symbol0 : symbol1}/${this.isInverted ? symbol1 : symbol0}</span>
+                </div>
+                <div class="trade-details">
+                    <span>Value: ${value.toFixed(4)} ${valueSymbol}</span>
+                    <span>Signer: ${signerShort}</span>
+                </div>
+                <div class="trade-meta">
+                    <span>${formattedTime}</span>
+                </div>
+            `;
+
+            // Add click handler to open transaction in explorer
+            const txId = trade.indexed?.tx_id;
+            if (txId) {
+                tradeDiv.style.cursor = 'pointer';
+                tradeDiv.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent event bubbling
+                    window.open(`https://explorer.xian.org/tx/${txId}`, '_blank', 'noopener,noreferrer');
+                });
+            }
+
+            this.modalTradesContent.appendChild(tradeDiv);
+        });
     }
 
     async loadPairsAndInitialize() {
@@ -276,42 +423,57 @@ class ChartController {
         console.log('Creating selectors');
         const selectorContainer = document.createElement('div');
         selectorContainer.className = 'selector-container';
-        // selectorContainer.style.position = 'absolute'; // Removed
-        // selectorContainer.style.top = '10px'; // Removed
-        // selectorContainer.style.left = '10px'; // Removed
-        // selectorContainer.style.zIndex = '5'; // Removed
+        selectorContainer.style.display = 'flex';
+        selectorContainer.style.flexDirection = 'row'; // Force horizontal layout
+        selectorContainer.style.alignItems = 'center';
+        selectorContainer.style.justifyContent = 'flex-start';
+        selectorContainer.style.gap = '10px';
+        selectorContainer.style.flexWrap = 'nowrap'; // Prevent wrapping
+        selectorContainer.style.width = '100%'; // Take full width
         selectorContainer.style.backgroundColor = '#2a2a2a';
         selectorContainer.style.padding = '8px';
         selectorContainer.style.borderRadius = '4px';
-        // selectorContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)'; // Removed
-        selectorContainer.style.display = 'flex';
-        selectorContainer.style.gap = '10px';
-        selectorContainer.style.alignItems = 'center';
         
-        // Pair selector
+        // Pair selector group
+        const pairGroup = document.createElement('div');
+        pairGroup.style.display = 'flex';
+        pairGroup.style.alignItems = 'center';
+        pairGroup.style.gap = '4px';
+        pairGroup.style.flexShrink = '0';
+        pairGroup.style.minWidth = 'auto'; // Allow natural width
+        
         const pairLabel = document.createElement('label');
-        pairLabel.textContent = 'Trading Pair: ';
+        pairLabel.textContent = 'Pair:';
         pairLabel.style.fontWeight = '500';
         pairLabel.style.color = '#00ffff';
+        pairLabel.style.whiteSpace = 'nowrap';
         
         this.pairSelect = document.createElement('select');
         this.pairSelect.className = 'pair-select';
-        this.pairSelect.style.padding = '8px 12px';
+        this.pairSelect.style.padding = '4px 8px';
         this.pairSelect.style.borderRadius = '4px';
         this.pairSelect.style.border = '1px solid #3a3a3a';
-        this.pairSelect.style.minWidth = '200px';
+        this.pairSelect.style.minWidth = '120px';
         
-        // Timeframe selector
+        // Timeframe selector group
+        const timeframeGroup = document.createElement('div');
+        timeframeGroup.style.display = 'flex';
+        timeframeGroup.style.alignItems = 'center';
+        timeframeGroup.style.gap = '4px';
+        timeframeGroup.style.flexShrink = '0';
+        
         const timeframeLabel = document.createElement('label');
-        timeframeLabel.textContent = 'Timeframe: ';
+        timeframeLabel.textContent = 'TF:';
         timeframeLabel.style.fontWeight = '500';
         timeframeLabel.style.color = '#00ffff';
+        timeframeLabel.style.whiteSpace = 'nowrap';
         
         this.timeframeSelect = document.createElement('select');
         this.timeframeSelect.className = 'timeframe-select';
-        this.timeframeSelect.style.padding = '8px 12px';
+        this.timeframeSelect.style.padding = '4px 8px';
         this.timeframeSelect.style.borderRadius = '4px';
         this.timeframeSelect.style.border = '1px solid #3a3a3a';
+        this.timeframeSelect.style.width = '70px';
         
         // Add timeframe options
         this.timeframes.forEach(tf => {
@@ -321,7 +483,7 @@ class ChartController {
             this.timeframeSelect.appendChild(option);
         });
         
-        // Add event listeners
+        // Event listeners remain the same
         this.pairSelect.addEventListener('change', () => {
             console.log(`Pair changed to: ${this.pairSelect.value}`);
             this.changePair(this.pairSelect.value);
@@ -335,20 +497,37 @@ class ChartController {
             this.loadChartData();
         });
         
-        // Add placeholder option for pair select
+        // Add placeholder option
         const placeholderOption = document.createElement('option');
-        placeholderOption.textContent = 'Loading pairs...';
+        placeholderOption.textContent = 'Loading...';
         placeholderOption.disabled = true;
         placeholderOption.selected = true;
         this.pairSelect.appendChild(placeholderOption);
         
-        // Append elements
-        selectorContainer.appendChild(pairLabel);
-        selectorContainer.appendChild(this.pairSelect);
-        selectorContainer.appendChild(timeframeLabel);
-        selectorContainer.appendChild(this.timeframeSelect);
+        // Append elements to their groups
+        pairGroup.appendChild(pairLabel);
+        pairGroup.appendChild(this.pairSelect);
         
-        document.getElementById('header-bar').appendChild(selectorContainer);
+        timeframeGroup.appendChild(timeframeLabel);
+        timeframeGroup.appendChild(this.timeframeSelect);
+        
+        // Append groups to container
+        selectorContainer.appendChild(pairGroup);
+        selectorContainer.appendChild(timeframeGroup);
+        
+        // Get header bar and set its styles
+        const headerBar = document.getElementById('header-bar');
+        headerBar.style.display = 'flex';
+        headerBar.style.flexDirection = 'row'; // Force horizontal layout
+        headerBar.style.alignItems = 'center';
+        headerBar.style.justifyContent = 'flex-start';
+        headerBar.style.gap = '10px';
+        headerBar.style.padding = '4px';
+        headerBar.style.width = '100%';
+        headerBar.style.minHeight = '50px';
+        headerBar.style.flexWrap = 'nowrap'; // Prevent wrapping
+        
+        headerBar.appendChild(selectorContainer);
         
         console.log('Selectors created');
     }
@@ -543,7 +722,7 @@ class ChartController {
         // this.toggleContainer.style.zIndex = '5'; // Removed
         
         const toggleButton = document.createElement('button');
-        toggleButton.textContent = 'Invert Pair';
+        toggleButton.textContent = 'Invert';
         toggleButton.className = 'toggle-button';
         toggleButton.style.padding = '8px 12px';
         toggleButton.style.backgroundColor = '#f0f0f0';
@@ -557,7 +736,7 @@ class ChartController {
         // Add event listener
         toggleButton.addEventListener('click', () => {
             this.isInverted = !this.isInverted;
-            toggleButton.textContent = this.isInverted ? 'Show Original Pair' : 'Invert Pair';
+            toggleButton.textContent = this.isInverted ? 'Show Original Pair' : 'Invert';
             this.updateChartTitle();
             this.updateQueryParams();
             this.updateTradeHistory();
@@ -791,187 +970,104 @@ class ChartController {
     processSwapEvents(tradeEvents) {
         if (tradeEvents.length === 0) return { candles: [], volumes: [] };
 
-        const trades = [];
+        // Pre-sort trades by timestamp once
+        tradeEvents.sort((a, b) => a.timestamp - b.timestamp);
         
+        // Get time boundaries
+        const startTime = tradeEvents[0].timestamp;
+        const endTime = new Date();
+        
+        // Calculate interval in milliseconds
+        const intervalMs = this.currentTimeframe.minutes * 60 * 1000;
+        
+        // Round start time down to interval boundary
+        const startInterval = new Date(Math.floor(startTime.getTime() / intervalMs) * intervalMs);
+        
+        // Round end time up to interval boundary
+        const endInterval = new Date(Math.ceil(endTime.getTime() / intervalMs) * intervalMs);
+        
+        // Create a map for quick lookup of trades in each interval
+        const tradesByInterval = new Map();
+        
+        // Group trades by interval - O(n) operation
         tradeEvents.forEach(trade => {
-            const price = this.calculatePrice(trade.indexed, trade.data);
-            if (price !== null) {
-                trades.push({
-                    timestamp: new Date(trade.timestamp),
-                    price: price,
-                    volume: parseFloat(trade.data.amount1In || 0) + parseFloat(trade.data.amount1Out || 0) || 1
-                });
+            const intervalTime = new Date(Math.floor(trade.timestamp.getTime() / intervalMs) * intervalMs);
+            const key = intervalTime.getTime();
+            
+            if (!tradesByInterval.has(key)) {
+                tradesByInterval.set(key, []);
             }
+            tradesByInterval.get(key).push(trade);
         });
-
-        if (trades.length === 0) return { candles: [], volumes: [] };
         
-        const mostRecentTradeTime = new Date(Math.max(...trades.map(t => t.timestamp.getTime())));
-        const startDate = new Date(Math.min(...trades.map(t => t.timestamp.getTime())));
-        
-        console.log(`Most recent trade time: ${mostRecentTradeTime.toISOString()}`);
-        console.log(`Start time: ${startDate.toISOString()}`);
-        
-        const currentTime = new Date();
-        console.log(`Current system time: ${currentTime.toISOString()}`);
-        
-        // Use selected timeframe interval
-        const intervalMinutes = this.currentTimeframe.minutes;
-        
-        // Round current time to the current interval
-        const currentInterval = new Date(currentTime);
-        const currentIntervalHours = currentInterval.getUTCHours();
-        const currentIntervalMinutes = Math.floor(currentInterval.getUTCMinutes() / intervalMinutes) * intervalMinutes;
-
-        currentInterval.setUTCHours(currentIntervalHours);
-        currentInterval.setUTCMinutes(currentIntervalMinutes);
-        currentInterval.setUTCSeconds(0, 0);
-        currentInterval.setUTCMilliseconds(0);
-
-        const endDate = currentInterval;
-        
-        // Round start time to interval boundary
-        const startInterval = new Date(startDate);
-        startInterval.setUTCMinutes(Math.floor(startInterval.getUTCMinutes() / intervalMinutes) * intervalMinutes, 0, 0);
-        
-        // Generate all intervals
-        const intervals = [];
-        let intervalTime = new Date(startInterval);
-        
-        while (intervalTime <= endDate) {
-            intervals.push(new Date(intervalTime));
-            intervalTime = new Date(intervalTime.getTime() + intervalMinutes * 60000);
-        }
-        
-        console.log(`Generated ${intervals.length} intervals for ${this.currentTimeframe.label} timeframe`);
-        console.log(`First interval: ${intervals[0].toISOString()}`);
-        console.log(`Last interval: ${intervals[intervals.length-1].toISOString()}`);
-        
-        // ONE-PASS CANDLE CREATION WITH PERFECT CONTINUITY
         const candles = [];
         const volumes = [];
         let previousClose = null;
-        let currentCandle = null;
-
-        // Get current theme colors for volume bars
-        const computedBodyStyles = getComputedStyle(document.body);
-        const buyColor = computedBodyStyles.getPropertyValue('--buy-color').trim();
-        const sellColor = computedBodyStyles.getPropertyValue('--sell-color').trim();
-        const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80'; // Append alpha, provide fallback
-        const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80'; // Append alpha, provide fallback
+        
+        // Get theme colors once
+        const computedStyles = getComputedStyle(document.body);
+        const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+        const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
+        const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80';
+        const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80';
         
         // Process each interval
-        for (let i = 0; i < intervals.length; i++) {
-            const intervalStart = intervals[i];
-            const intervalEnd = i < intervals.length - 1 ? 
-                intervals[i + 1] : 
-                new Date(intervalStart.getTime() + intervalMinutes * 60000);
+        for (let time = startInterval.getTime(); time <= endInterval.getTime(); time += intervalMs) {
+            const trades = tradesByInterval.get(time) || [];
+            const timestamp = Math.floor(time / 1000); // Convert to seconds for the chart
             
-            // Find trades in this interval
-            const tradesInInterval = trades.filter(trade => 
-                trade.timestamp >= intervalStart && 
-                trade.timestamp < intervalEnd
-            );
-            
-            // Use UNIX timestamp for the chart library
-            const timestamp = Math.floor(intervalStart.getTime() / 1000);
-            const isCurrentInterval = currentTime >= intervalStart && currentTime < intervalEnd;
-            
-            if (isCurrentInterval) {
-                console.log(`Processing current interval: ${intervalStart.toISOString()} - ${intervalEnd.toISOString()}`);
-                console.log(`This interval has ${tradesInInterval.length} trades`);
-            }
-            
-            // Calculate total volume for this interval
-            const totalVolume = tradesInInterval.reduce((sum, trade) => sum + trade.volume, 0);
-            
-            if (i === 0 && tradesInInterval.length > 0) {
-                // First candle with trades - special handling
-                const firstCandle = {
-                    time: timestamp,
-                    open: tradesInInterval[0].price,
-                    high: Math.max(...tradesInInterval.map(t => t.price)),
-                    low: Math.min(...tradesInInterval.map(t => t.price)),
-                    close: tradesInInterval[tradesInInterval.length - 1].price,
-                    tradeCount: tradesInInterval.length
-                };
+            if (trades.length > 0) {
+                // Calculate candle data in a single pass
+                let open = previousClose !== null ? previousClose : this.calculatePrice(trades[0].indexed, trades[0].data);
+                let high = open;
+                let low = open;
+                let volume = 0;
                 
-                candles.push(firstCandle);
-                previousClose = firstCandle.close;
+                // Single pass through trades for this interval
+                trades.forEach(trade => {
+                    const price = this.calculatePrice(trade.indexed, trade.data);
+                    if (price !== null) {
+                        high = Math.max(high, price);
+                        low = Math.min(low, price);
+                        volume += parseFloat(trade.data.amount1In || 0) + parseFloat(trade.data.amount1Out || 0);
+                    }
+                });
+                
+                const close = this.calculatePrice(trades[trades.length - 1].indexed, trades[trades.length - 1].data);
+                
+                candles.push({
+                    time: timestamp,
+                    open,
+                    high,
+                    low,
+                    close,
+                    tradeCount: trades.length
+                });
                 
                 volumes.push({
                     time: timestamp,
-                    value: totalVolume,
-                    color: firstCandle.close >= firstCandle.open ? volumeUpColor : volumeDownColor
+                    value: volume,
+                    color: close >= open ? volumeUpColor : volumeDownColor
                 });
                 
-                if (isCurrentInterval) currentCandle = firstCandle;
-            } else {
-                // All subsequent candles
-                if (previousClose === null) {
-                    // Skip until we have a first trade
-                    continue;
-                }
+                previousClose = close;
+            } else if (previousClose !== null) {
+                // Empty interval with previous close
+                candles.push({
+                    time: timestamp,
+                    open: previousClose,
+                    high: previousClose,
+                    low: previousClose,
+                    close: previousClose,
+                    tradeCount: 0
+                });
                 
-                if (tradesInInterval.length > 0) {
-                    // Candle with trades
-                    const candle = {
-                        time: timestamp,
-                        open: previousClose,
-                        close: tradesInInterval[tradesInInterval.length - 1].price,
-                        tradeCount: tradesInInterval.length
-                    };
-                    
-                    candle.high = Math.max(candle.open, ...tradesInInterval.map(t => t.price));
-                    candle.low = Math.min(candle.open, ...tradesInInterval.map(t => t.price));
-                    
-                    candles.push(candle);
-                    previousClose = candle.close;
-                    
-                    volumes.push({
-                        time: timestamp,
-                        value: totalVolume,
-                        color: candle.close >= candle.open ? volumeUpColor : volumeDownColor
-                    });
-                    
-                    if (isCurrentInterval) {
-                        console.log(`Current candle has trades: O=${candle.open}, C=${candle.close}, Trades=${candle.tradeCount}`);
-                        currentCandle = candle;
-                    }
-                } else {
-                    // Empty candle
-                    const emptyCandle = {
-                        time: timestamp,
-                        open: previousClose,
-                        high: previousClose,
-                        low: previousClose,
-                        close: previousClose,
-                        tradeCount: 0
-                    };
-                    
-                    candles.push(emptyCandle);
-                    
-                    volumes.push({
-                        time: timestamp,
-                        value: 0,
-                        color: '#80808040'
-                    });
-                    
-                    if (isCurrentInterval) {
-                        console.log(`Current candle is empty: Price=${previousClose}`);
-                        currentCandle = emptyCandle;
-                    }
-                }
+                volumes.push({
+                    time: timestamp,
+                    value: 0,
+                    color: '#80808040'
+                });
             }
-        }
-        
-        console.log(`Generated ${candles.length} candles`);
-        
-        // Verify the current candle was created
-        if (currentCandle) {
-            console.log(`Current candle created at timestamp ${new Date(currentCandle.time * 1000).toISOString()}`);
-        } else {
-            console.log(`Failed to create current candle!`);
         }
         
         return { candles, volumes };
@@ -1224,14 +1320,14 @@ class ChartController {
         this.volumeTooltip.style.position = 'absolute';
         this.volumeTooltip.style.display = 'none';
         this.volumeTooltip.style.padding = '8px 12px';
-        this.volumeTooltip.style.backgroundColor = '#2a2a2a';
-        this.volumeTooltip.style.color = '#d4d4d4';
+        this.volumeTooltip.style.backgroundColor = 'var(--modal-background)';
+        this.volumeTooltip.style.color = 'var(--text-color)';
         this.volumeTooltip.style.borderRadius = '4px';
         this.volumeTooltip.style.fontSize = '12px';
         this.volumeTooltip.style.fontFamily = "'Inter', 'Roboto', sans-serif";
         this.volumeTooltip.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.3)';
         this.volumeTooltip.style.zIndex = '10';
-        this.volumeTooltip.style.pointerEvents = 'none'; // Don't interfere with mouse events
+        this.volumeTooltip.style.pointerEvents = 'none';
         this.chartContainer.appendChild(this.volumeTooltip);
         
         // Map to store time -> volume data for quick lookup
@@ -1254,19 +1350,18 @@ class ChartController {
             const volume = this.volumeByTime.get(time);
             
             if (volume !== undefined) {
-                // Format volume with thousands separators
                 const formattedVolume = volume.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
                 
-                // Determine color based on candlestick
-                const candle = this.candlestickSeries.dataByTime().get(time);
-                const color = candle && candle.close >= candle.open ? '#0066ff' : '#9933ff';
+                // Get the corresponding candle data
+                const candleData = param.seriesData.get(this.candlestickSeries);
+                const color = candleData && candleData.close >= candleData.open ? 
+                    'var(--buy-color)' : 'var(--sell-color)';
                 
-                // Position the tooltip
                 const x = param.point.x;
-                const y = this.chartContainer.clientHeight * 0.8; // Position near volume area
+                const y = this.chartContainer.clientHeight * 0.8;
                 
                 this.volumeTooltip.innerHTML = `<span style="color: ${color}">Volume: ${formattedVolume}</span>`;
                 this.volumeTooltip.style.left = x + 15 + 'px';
@@ -1333,7 +1428,9 @@ class ChartController {
             const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
             const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
             const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+            // Ensure watermark has low alpha, e.g., '12' for ~7% opacity if hex
             const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
+            // Ensure crosshair has some transparency, e.g., '40' for ~25% opacity if hex
             const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
 
             this.chart.applyOptions({
@@ -1375,12 +1472,11 @@ class ChartController {
 
     loadSavedTheme() {
         let themeToLoad = localStorage.getItem('selectedTheme');
-        // Validate theme and default if necessary
+        // Default to ocean blue if no theme is saved
         if (!themeToLoad || !this.themes.find(t => t.className === themeToLoad)) {
-            themeToLoad = this.themes.length > 0 ? this.themes[0].className : 'theme-dark-default'; // Fallback if themes array is empty
+            themeToLoad = 'theme-ocean-blue';
         }
-        this.applyTheme(themeToLoad, true); // Pass true for isInitialLoad
-        // console.log is already in applyTheme, this one is redundant: console.log(`Loaded saved theme: ${themeToLoad} (or default). Initial load: true`);
+        this.applyTheme(themeToLoad, true);
     }
 
     async applyCurrentThemeToChart() {
