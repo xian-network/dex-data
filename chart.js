@@ -14,6 +14,14 @@ class ChartController {
             { label: '1d', minutes: 1440 }
         ];
         this.currentTimeframe = this.timeframes.find(tf => tf.minutes === 60) || this.timeframes[0]; // Default to 1h
+
+        this.themes = [
+            { name: "Dark Default", className: "theme-dark-default" },
+            { name: "Light Mode", className: "theme-light" },
+            { name: "Ocean Blue", className: "theme-ocean-blue" },
+            { name: "Forest Green", className: "theme-forest-green" },
+            { name: "Royal Purple", className: "theme-royal-purple" }
+        ];
         
         const chartContainer = document.getElementById('chart-container');
         this.chartContainer = chartContainer;
@@ -21,6 +29,12 @@ class ChartController {
         // Create containers for selectors
         this.createSelectors();
         
+        // Initialize Modal, Theme Selector, and load saved theme
+        this.initModalControls();
+        this.populateThemeSelector();
+        this.initThemeSelector();
+        this.loadSavedTheme();
+
         // Chart initialization will happen after loading pairs
         this.loadPairsAndInitialize();
     }
@@ -1237,6 +1251,124 @@ class ChartController {
                 this.volumeTooltip.style.display = 'none';
             }
         });
+    }
+
+    populateThemeSelector() {
+        const themeSelect = document.getElementById('theme-select');
+        if (!themeSelect) {
+            console.error('Theme select element #theme-select not found.');
+            return;
+        }
+
+        // Clear existing placeholder options
+        themeSelect.innerHTML = '';
+
+        // Populate with defined themes
+        this.themes.forEach(theme => {
+            const option = document.createElement('option');
+            option.value = theme.className;
+            option.textContent = theme.name;
+            themeSelect.appendChild(option);
+        });
+
+        console.log('Theme selector populated.');
+    }
+
+    initThemeSelector() {
+        const themeSelect = document.getElementById('theme-select');
+        if (!themeSelect) {
+            console.error('Theme select element #theme-select for event listener not found.');
+            return;
+        }
+        themeSelect.addEventListener('change', (event) => {
+            this.applyTheme(event.target.value);
+        });
+        console.log('Theme selector initialized.');
+    }
+
+    applyTheme(themeClassName) {
+        if (!themeClassName) return;
+
+        // Remove any existing theme classes from body
+        this.themes.forEach(theme => {
+            document.body.classList.remove(theme.className);
+        });
+
+        // Add the new theme class
+        document.body.classList.add(themeClassName);
+        localStorage.setItem('selectedTheme', themeClassName);
+        console.log(`Theme ${themeClassName} applied and saved.`);
+
+        // Potentially update chart theme options here if chart library supports it directly
+        // For Lightweight Charts, this might involve re-applying options for colors
+        if (this.chart) {
+            // Example: Re-apply chart options based on new theme
+            // This is a placeholder. Actual theme application for the chart
+            // will require specific color mappings for each theme.
+            // For now, we assume CSS handles chart theming via body class.
+            console.log('Chart detected, theme change may require chart re-styling (currently handled by CSS).');
+        }
+    }
+
+    loadSavedTheme() {
+        const savedTheme = localStorage.getItem('selectedTheme');
+        const themeSelect = document.getElementById('theme-select');
+
+        if (savedTheme) {
+            this.applyTheme(savedTheme);
+            if (themeSelect) {
+                themeSelect.value = savedTheme;
+            }
+            console.log(`Loaded saved theme: ${savedTheme}`);
+        } else {
+            // Apply default theme if no theme is saved
+            const defaultTheme = this.themes.find(theme => theme.className === 'theme-dark-default') || this.themes[0];
+            if (defaultTheme) {
+                this.applyTheme(defaultTheme.className);
+                if (themeSelect) {
+                    themeSelect.value = defaultTheme.className;
+                }
+                console.log(`No saved theme found, applied default: ${defaultTheme.className}`);
+            }
+        }
+    }
+
+    initModalControls() {
+        const settingsGearIcon = document.getElementById('settings-gear-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeButton = settingsModal ? settingsModal.querySelector('.close-button') : null;
+
+        if (!settingsGearIcon) {
+            console.error('Settings gear icon #settings-gear-icon not found.');
+            return;
+        }
+        if (!settingsModal) {
+            console.error('Settings modal #settings-modal not found.');
+            return;
+        }
+        if (!closeButton) {
+            console.error('Close button .close-button within modal not found.');
+            return;
+        }
+
+        settingsGearIcon.addEventListener('click', () => {
+            const isDisplayed = settingsModal.style.display === 'block';
+            settingsModal.style.display = isDisplayed ? 'none' : 'block';
+            console.log(`Settings modal toggled ${isDisplayed ? 'off' : 'on'}`);
+        });
+
+        closeButton.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+            console.log('Settings modal closed by button.');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === settingsModal) { // Clicked on the modal backdrop
+                settingsModal.style.display = 'none';
+                console.log('Settings modal closed by clicking outside.');
+            }
+        });
+        console.log('Modal controls initialized.');
     }
 }
 
