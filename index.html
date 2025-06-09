@@ -289,63 +289,68 @@
         /* Responsive adjustments */
         @media (max-width: 768px) {
             #header-bar {
-                flex-direction: column; /* Stack items vertically */
-                align-items: stretch; /* Stretch items to full width */
-                gap: 10px; /* Reduce gap for stacked items */
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 8px;
+                gap: 8px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            #header-bar::-webkit-scrollbar {
+                display: none;
             }
 
             .selector-container {
-                flex-direction: column; /* Stack selectors and labels */
-                align-items: stretch; /* Stretch items */
-                width: 100%; /* Take full width */
-                gap: 8px; /* Gap between label and select */
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                width: auto !important;
+                min-width: min-content;
             }
 
+            /* Hide labels on mobile */
             .selector-container label {
-                margin-bottom: 4px; /* Space below label */
+                display: none !important;
             }
 
-            .pair-select, .timeframe-select {
-                width: 100%; /* Make selects take full width */
+            .pair-select {
+                width: auto !important;
+                min-width: 120px !important;
+            }
+
+            .timeframe-select {
+                width: 70px !important;
             }
 
             .toggle-container {
-                width: 100%; /* Make toggle container take full width */
-                display: flex; /* To allow button centering or full width */
+                width: auto !important;
             }
 
             .toggle-button {
-                flex-grow: 1; /* Make button take full width if desired */
-                text-align: center;
-            }
-
-            /* Rule to hide labels for Trading Pair and Timeframe */
-            div#header-bar div.selector-container > label {
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                padding: 0;
-                margin: -1px;
-                overflow: hidden;
-                clip: rect(0, 0, 0, 0);
-                white-space: nowrap;
-                border: 0;
-            }
-
-            /* Rule to hide text on the toggle button */
-            div#header-bar div.toggle-container button.toggle-button {
-                text-indent: -9999px;
-                overflow: hidden;
-                /* Existing rules like flex-grow: 1 and text-align: center will still apply */
-                /* Padding from the general .toggle-button rule will also apply, giving it size */
+                width: auto !important;
+                flex-grow: 0 !important;
             }
 
             #trade-history {
-                display: none; /* Hide the original trade history table on mobile */
+                display: none;
             }
 
             #trades-footer {
-                display: flex; /* Show the trades footer on mobile */
+                display: flex;
+                height: 44px; /* Explicit height for footer */
+            }
+
+            #chart-container {
+                height: calc(100vh - 60px); /* Account for header and footer */
+                margin-bottom: 44px; /* Height of the trades footer */
+            }
+
+            /* Ensure the modal doesn't get hidden behind the footer */
+            #trades-modal {
+                padding-bottom: 44px;
             }
         }
     </style>

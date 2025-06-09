@@ -378,42 +378,57 @@ class ChartController {
         console.log('Creating selectors');
         const selectorContainer = document.createElement('div');
         selectorContainer.className = 'selector-container';
-        // selectorContainer.style.position = 'absolute'; // Removed
-        // selectorContainer.style.top = '10px'; // Removed
-        // selectorContainer.style.left = '10px'; // Removed
-        // selectorContainer.style.zIndex = '5'; // Removed
+        selectorContainer.style.display = 'flex';
+        selectorContainer.style.flexDirection = 'row'; // Force horizontal layout
+        selectorContainer.style.alignItems = 'center';
+        selectorContainer.style.justifyContent = 'flex-start';
+        selectorContainer.style.gap = '10px';
+        selectorContainer.style.flexWrap = 'nowrap'; // Prevent wrapping
+        selectorContainer.style.width = '100%'; // Take full width
         selectorContainer.style.backgroundColor = '#2a2a2a';
         selectorContainer.style.padding = '8px';
         selectorContainer.style.borderRadius = '4px';
-        // selectorContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)'; // Removed
-        selectorContainer.style.display = 'flex';
-        selectorContainer.style.gap = '10px';
-        selectorContainer.style.alignItems = 'center';
         
-        // Pair selector
+        // Pair selector group
+        const pairGroup = document.createElement('div');
+        pairGroup.style.display = 'flex';
+        pairGroup.style.alignItems = 'center';
+        pairGroup.style.gap = '4px';
+        pairGroup.style.flexShrink = '0';
+        pairGroup.style.minWidth = 'auto'; // Allow natural width
+        
         const pairLabel = document.createElement('label');
-        pairLabel.textContent = 'Trading Pair: ';
+        pairLabel.textContent = 'Pair:';
         pairLabel.style.fontWeight = '500';
         pairLabel.style.color = '#00ffff';
+        pairLabel.style.whiteSpace = 'nowrap';
         
         this.pairSelect = document.createElement('select');
         this.pairSelect.className = 'pair-select';
-        this.pairSelect.style.padding = '8px 12px';
+        this.pairSelect.style.padding = '4px 8px';
         this.pairSelect.style.borderRadius = '4px';
         this.pairSelect.style.border = '1px solid #3a3a3a';
-        this.pairSelect.style.minWidth = '200px';
+        this.pairSelect.style.minWidth = '120px';
         
-        // Timeframe selector
+        // Timeframe selector group
+        const timeframeGroup = document.createElement('div');
+        timeframeGroup.style.display = 'flex';
+        timeframeGroup.style.alignItems = 'center';
+        timeframeGroup.style.gap = '4px';
+        timeframeGroup.style.flexShrink = '0';
+        
         const timeframeLabel = document.createElement('label');
-        timeframeLabel.textContent = 'Timeframe: ';
+        timeframeLabel.textContent = 'TF:';
         timeframeLabel.style.fontWeight = '500';
         timeframeLabel.style.color = '#00ffff';
+        timeframeLabel.style.whiteSpace = 'nowrap';
         
         this.timeframeSelect = document.createElement('select');
         this.timeframeSelect.className = 'timeframe-select';
-        this.timeframeSelect.style.padding = '8px 12px';
+        this.timeframeSelect.style.padding = '4px 8px';
         this.timeframeSelect.style.borderRadius = '4px';
         this.timeframeSelect.style.border = '1px solid #3a3a3a';
+        this.timeframeSelect.style.width = '70px';
         
         // Add timeframe options
         this.timeframes.forEach(tf => {
@@ -423,7 +438,7 @@ class ChartController {
             this.timeframeSelect.appendChild(option);
         });
         
-        // Add event listeners
+        // Event listeners remain the same
         this.pairSelect.addEventListener('change', () => {
             console.log(`Pair changed to: ${this.pairSelect.value}`);
             this.changePair(this.pairSelect.value);
@@ -437,20 +452,37 @@ class ChartController {
             this.loadChartData();
         });
         
-        // Add placeholder option for pair select
+        // Add placeholder option
         const placeholderOption = document.createElement('option');
-        placeholderOption.textContent = 'Loading pairs...';
+        placeholderOption.textContent = 'Loading...';
         placeholderOption.disabled = true;
         placeholderOption.selected = true;
         this.pairSelect.appendChild(placeholderOption);
         
-        // Append elements
-        selectorContainer.appendChild(pairLabel);
-        selectorContainer.appendChild(this.pairSelect);
-        selectorContainer.appendChild(timeframeLabel);
-        selectorContainer.appendChild(this.timeframeSelect);
+        // Append elements to their groups
+        pairGroup.appendChild(pairLabel);
+        pairGroup.appendChild(this.pairSelect);
         
-        document.getElementById('header-bar').appendChild(selectorContainer);
+        timeframeGroup.appendChild(timeframeLabel);
+        timeframeGroup.appendChild(this.timeframeSelect);
+        
+        // Append groups to container
+        selectorContainer.appendChild(pairGroup);
+        selectorContainer.appendChild(timeframeGroup);
+        
+        // Get header bar and set its styles
+        const headerBar = document.getElementById('header-bar');
+        headerBar.style.display = 'flex';
+        headerBar.style.flexDirection = 'row'; // Force horizontal layout
+        headerBar.style.alignItems = 'center';
+        headerBar.style.justifyContent = 'flex-start';
+        headerBar.style.gap = '10px';
+        headerBar.style.padding = '4px';
+        headerBar.style.width = '100%';
+        headerBar.style.minHeight = '50px';
+        headerBar.style.flexWrap = 'nowrap'; // Prevent wrapping
+        
+        headerBar.appendChild(selectorContainer);
         
         console.log('Selectors created');
     }
