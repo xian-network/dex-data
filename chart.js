@@ -1,4 +1,9 @@
+// Add at the top of chart.js
+console.log('Chart.js version 1.0.1 loaded');
+console.log('Timeframes:', this.timeframes.map(tf => tf.label).join(', '));
+
 // Debounce helper function
+
 function debounce(func, delay) {
     let timeoutId;
     return function(...args) {
