@@ -14,6 +14,8 @@ class ChartController {
             { label: '1d', minutes: 1440 }
         ];
         this.currentTimeframe = this.timeframes.find(tf => tf.minutes === 60) || this.timeframes[0]; // Default to 1h
+        this.activeThemeClassName = ''; // Initialize active theme class name
+        this.themeSelect = null; // Initialize theme select element reference
 
         this.themes = [
             { name: "Dark Default", className: "theme-dark-default" },
@@ -33,10 +35,10 @@ class ChartController {
         this.initModalControls();
         this.populateThemeSelector();
         this.initThemeSelector();
-        this.loadSavedTheme();
+        this.loadSavedTheme(); // This will call applyTheme with isInitialLoad = true
 
         // Chart initialization will happen after loading pairs
-        this.loadPairsAndInitialize();
+        this.loadPairsAndInitialize(); // This is now async
     }
 
     async loadPairsAndInitialize() {
@@ -73,8 +75,12 @@ class ChartController {
             // Update selectors to match current state
             this.updateSelectorsFromState();
             
-            // Initialize the chart
-            this.initializeChart();
+            // Initialize the chart (which includes an initial loadChartData)
+            this.initializeChart(); // This calls loadChartData internally
+
+            // After chart and initial data are loaded, apply the theme to chart elements
+            // Note: initializeChart calls loadChartData, so this will run after the first data load.
+            await this.applyCurrentThemeToChart();
             
             loading.style.display = 'none';
             
@@ -476,8 +482,8 @@ class ChartController {
             this.createPairToggle();
         }
         
-        // Load data for the current pair
-        this.loadChartData();
+        // Load data for the current pair (this is the first call to loadChartData)
+        await this.loadChartData(); // Ensure this is awaited
         
         // Handle window resizing
         window.addEventListener('resize', () => {
@@ -1261,56 +1267,55 @@ class ChartController {
     }
 
     populateThemeSelector() {
-        const themeSelect = document.getElementById('theme-select');
-        if (!themeSelect) {
+        this.themeSelect = document.getElementById('theme-select'); // Store reference
+        if (!this.themeSelect) {
             console.error('Theme select element #theme-select not found.');
             return;
         }
 
         // Clear existing placeholder options
-        themeSelect.innerHTML = '';
+        this.themeSelect.innerHTML = '';
 
         // Populate with defined themes
         this.themes.forEach(theme => {
             const option = document.createElement('option');
             option.value = theme.className;
             option.textContent = theme.name;
-            themeSelect.appendChild(option);
+            this.themeSelect.appendChild(option);
         });
 
         console.log('Theme selector populated.');
     }
 
     initThemeSelector() {
-        const themeSelect = document.getElementById('theme-select');
-        if (!themeSelect) {
+        if (!this.themeSelect) { // Use stored reference
             console.error('Theme select element #theme-select for event listener not found.');
             return;
         }
-        themeSelect.addEventListener('change', (event) => {
-            this.applyTheme(event.target.value);
+        this.themeSelect.addEventListener('change', (event) => {
+            this.applyTheme(event.target.value, false); // Pass false for isInitialLoad
         });
         console.log('Theme selector initialized.');
     }
 
-    applyTheme(themeClassName) {
+    applyTheme(themeClassName, isInitialLoad = false) {
         if (!themeClassName) return;
 
-        // Remove any existing theme classes from body
+        // Always update body class, localStorage, and select element
         this.themes.forEach(theme => {
             document.body.classList.remove(theme.className);
         });
-
-        // Add the new theme class
         document.body.classList.add(themeClassName);
         localStorage.setItem('selectedTheme', themeClassName);
-        console.log(`Theme ${themeClassName} applied and saved.`);
+        this.activeThemeClassName = themeClassName; // Store active theme class
 
-        // Potentially update chart theme options here if chart library supports it directly
-        // For Lightweight Charts, this might involve re-applying options for colors
+        if (this.themeSelect) { // Check if themeSelect is initialized
+            this.themeSelect.value = themeClassName;
+        }
+        console.log(`Theme ${themeClassName} applied. Initial load: ${isInitialLoad}`);
 
-        // Check if chart object is initialized
-        if (this.chart) {
+        // Conditionally update chart style if not initial load and chart exists
+        if (!isInitialLoad && this.chart) {
             const computedStyles = getComputedStyle(document.body);
             const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
             const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
@@ -1337,7 +1342,6 @@ class ChartController {
                 }
             });
 
-            // Check if candlestickSeries is initialized
             if (this.candlestickSeries) {
                 const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
                 const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
@@ -1351,33 +1355,74 @@ class ChartController {
                 });
             }
 
-            if (this.currentPair) {
-                 this.loadChartData();
+            if (this.currentPair) { // Ensure a pair is selected before reloading data
+                this.loadChartData();
             }
         }
     }
 
     loadSavedTheme() {
-        const savedTheme = localStorage.getItem('selectedTheme');
-        const themeSelect = document.getElementById('theme-select');
-
-        if (savedTheme) {
-            this.applyTheme(savedTheme);
-            if (themeSelect) {
-                themeSelect.value = savedTheme;
-            }
-            console.log(`Loaded saved theme: ${savedTheme}`);
-        } else {
-            // Apply default theme if no theme is saved
-            const defaultTheme = this.themes.find(theme => theme.className === 'theme-dark-default') || this.themes[0];
-            if (defaultTheme) {
-                this.applyTheme(defaultTheme.className);
-                if (themeSelect) {
-                    themeSelect.value = defaultTheme.className;
-                }
-                console.log(`No saved theme found, applied default: ${defaultTheme.className}`);
-            }
+        let themeToLoad = localStorage.getItem('selectedTheme');
+        // Validate theme and default if necessary
+        if (!themeToLoad || !this.themes.find(t => t.className === themeToLoad)) {
+            themeToLoad = this.themes.length > 0 ? this.themes[0].className : 'theme-dark-default'; // Fallback if themes array is empty
         }
+        this.applyTheme(themeToLoad, true); // Pass true for isInitialLoad
+        // console.log is already in applyTheme, this one is redundant: console.log(`Loaded saved theme: ${themeToLoad} (or default). Initial load: true`);
+    }
+
+    async applyCurrentThemeToChart() {
+        // This method will apply the active theme's colors to chart elements.
+        // It's called after the chart is initialized and initial data is loaded.
+        if (!this.chart || !this.candlestickSeries || !this.activeThemeClassName) {
+            console.warn("Chart, candlestickSeries, or activeThemeClassName not ready for applyCurrentThemeToChart. Active theme: ", this.activeThemeClassName);
+            return;
+        }
+        console.log("applyCurrentThemeToChart: Applying styling for theme - ", this.activeThemeClassName);
+
+        const computedStyles = getComputedStyle(document.body);
+        const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
+        const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
+        const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
+        const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+        // Ensure watermark has low alpha, e.g., '12' for ~7% opacity if hex
+        const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
+        // Ensure crosshair has some transparency, e.g., '40' for ~25% opacity if hex
+        const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
+
+        this.chart.applyOptions({
+            layout: {
+                background: { color: chartBackgroundColor },
+                textColor: chartTextColor,
+            },
+            grid: {
+                vertLines: { color: chartGridColor },
+                horzLines: { color: chartGridColor },
+            },
+            watermark: { // Watermark options are part of top-level options, not layout
+                color: watermarkColor,
+            },
+            crosshair: {
+                vertLine: { color: crosshairColor },
+                horzLine: { color: crosshairColor },
+            }
+        });
+
+        // this.candlestickSeries is already checked by the guard clause
+        const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+        const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
+        this.candlestickSeries.applyOptions({
+            upColor: buyColor,
+            downColor: sellColor,
+            wickUpColor: buyColor,
+            wickDownColor: sellColor,
+            borderUpColor: buyColor,
+            borderDownColor: sellColor,
+        });
+
+        // Note: Volume bar colors are handled in processSwapEvents by reading computed styles directly.
+        // No need to call loadChartData() here as this method is for styling existing chart structure.
+        console.log("applyCurrentThemeToChart: Chart styles updated for theme - ", this.activeThemeClassName);
     }
 
     initModalControls() {
