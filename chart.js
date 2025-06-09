@@ -424,15 +424,22 @@ class ChartController {
         const selectorContainer = document.createElement('div');
         selectorContainer.className = 'selector-container';
         selectorContainer.style.display = 'flex';
-        selectorContainer.style.flexDirection = 'row'; // Force horizontal layout
+        selectorContainer.style.flexDirection = 'row';
         selectorContainer.style.alignItems = 'center';
-        selectorContainer.style.justifyContent = 'flex-start';
+        selectorContainer.style.justifyContent = 'space-between'; // Changed to space-between
         selectorContainer.style.gap = '10px';
-        selectorContainer.style.flexWrap = 'nowrap'; // Prevent wrapping
-        selectorContainer.style.width = '100%'; // Take full width
+        selectorContainer.style.flexWrap = 'nowrap';
+        selectorContainer.style.width = '100%';
         selectorContainer.style.backgroundColor = '#2a2a2a';
         selectorContainer.style.padding = '8px';
         selectorContainer.style.borderRadius = '4px';
+        
+        // Left side container for pair, timeframe, and invert
+        const leftGroup = document.createElement('div');
+        leftGroup.style.display = 'flex';
+        leftGroup.style.alignItems = 'center';
+        leftGroup.style.gap = '10px';
+        leftGroup.style.flexShrink = '0';
         
         // Pair selector group
         const pairGroup = document.createElement('div');
@@ -440,7 +447,6 @@ class ChartController {
         pairGroup.style.alignItems = 'center';
         pairGroup.style.gap = '4px';
         pairGroup.style.flexShrink = '0';
-        pairGroup.style.minWidth = 'auto'; // Allow natural width
         
         const pairLabel = document.createElement('label');
         pairLabel.textContent = 'Pair:';
@@ -474,16 +480,69 @@ class ChartController {
         this.timeframeSelect.style.borderRadius = '4px';
         this.timeframeSelect.style.border = '1px solid #3a3a3a';
         this.timeframeSelect.style.width = '70px';
-        
-        // Add timeframe options
-        this.timeframes.forEach(tf => {
-            const option = document.createElement('option');
-            option.value = tf.minutes;
-            option.textContent = tf.label;
-            this.timeframeSelect.appendChild(option);
+
+        // Create invert button
+        const invertButton = document.createElement('button');
+        invertButton.textContent = 'Invert';
+        invertButton.className = 'toggle-button';
+        invertButton.style.padding = '4px 12px';
+        invertButton.style.backgroundColor = '#3a3a3a';
+        invertButton.style.border = '1px solid var(--secondary-accent)';
+        invertButton.style.borderRadius = '4px';
+        invertButton.style.color = 'var(--text-color)';
+        invertButton.style.cursor = 'pointer';
+        invertButton.style.transition = 'all 0.2s ease';
+
+        // Add hover effect
+        invertButton.addEventListener('mouseover', () => {
+            invertButton.style.backgroundColor = 'var(--secondary-accent)';
+        });
+        invertButton.addEventListener('mouseout', () => {
+            invertButton.style.backgroundColor = '#3a3a3a';
+        });
+
+        // Create swap button (right side)
+        const swapButton = document.createElement('button');
+        swapButton.textContent = 'Trade Now';
+        swapButton.className = 'swap-button';
+        swapButton.style.padding = '8px 24px'; // Increased padding
+        swapButton.style.backgroundColor = '#00C853'; // Bright green color
+        swapButton.style.border = 'none';
+        swapButton.style.borderRadius = '4px';
+        swapButton.style.color = '#ffffff';
+        swapButton.style.cursor = 'pointer';
+        swapButton.style.transition = 'all 0.2s ease';
+        swapButton.style.marginLeft = 'auto'; // Push to right side
+        swapButton.style.fontSize = '14px'; // Larger font
+        swapButton.style.fontWeight = '600'; // Make text bolder
+        swapButton.style.textTransform = 'uppercase'; // Make text uppercase
+        swapButton.style.letterSpacing = '0.5px'; // Add letter spacing
+        swapButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)'; // Add subtle shadow
+
+        // Enhanced hover effect for swap button
+        swapButton.addEventListener('mouseover', () => {
+            swapButton.style.backgroundColor = '#00E676'; // Lighter green on hover
+            swapButton.style.transform = 'translateY(-1px)'; // Slight lift effect
+            swapButton.style.boxShadow = '0 4px 8px rgba(0, 200, 83, 0.3)'; // Enhanced shadow on hover
+        });
+
+        swapButton.addEventListener('mouseout', () => {
+            swapButton.style.backgroundColor = '#00C853'; // Back to original color
+            swapButton.style.transform = 'translateY(0)'; // Remove lift effect
+            swapButton.style.boxShadow = '0 2px 4px rgba(0, 200, 83, 0.2)'; // Back to original shadow
+        });
+
+        // Add click handler for swap button
+        swapButton.addEventListener('click', () => {
+            if (this.currentPair) {
+                const token0 = this.currentPair.token0;
+                const token1 = this.currentPair.token1;
+                const dexUrl = `https://snakexchange.org/?token0=${token0}&token1=${token1}`;
+                window.open(dexUrl, '_blank', 'noopener,noreferrer');
+            }
         });
         
-        // Event listeners remain the same
+        // Add event listeners
         this.pairSelect.addEventListener('change', () => {
             console.log(`Pair changed to: ${this.pairSelect.value}`);
             this.changePair(this.pairSelect.value);
@@ -496,40 +555,80 @@ class ChartController {
             this.updateQueryParams();
             this.loadChartData();
         });
+
+        // Add invert button click handler
+        invertButton.addEventListener('click', async () => {
+            this.isInverted = !this.isInverted;
+            this.updateChartTitle();
+            this.updateQueryParams();
+            this.updateTradeHistory();
+            
+            if (this.candlestickSeries) {
+                this.chart.priceScale('right').applyOptions({
+                    autoScale: true,
+                    scaleMargins: {
+                        top: 0.1,
+                        bottom: 0.3,
+                    }
+                });
+            }
+            
+            await this.loadChartData();
+            this.chart.timeScale().fitContent();
+        });
         
-        // Add placeholder option
+        // Add timeframe options
+        this.timeframes.forEach(tf => {
+            const option = document.createElement('option');
+            option.value = tf.minutes;
+            option.textContent = tf.label;
+            this.timeframeSelect.appendChild(option);
+        });
+        
+        // Add placeholder option for pair select
         const placeholderOption = document.createElement('option');
         placeholderOption.textContent = 'Loading...';
         placeholderOption.disabled = true;
         placeholderOption.selected = true;
         this.pairSelect.appendChild(placeholderOption);
         
-        // Append elements to their groups
+        // Assemble the components
         pairGroup.appendChild(pairLabel);
         pairGroup.appendChild(this.pairSelect);
         
         timeframeGroup.appendChild(timeframeLabel);
         timeframeGroup.appendChild(this.timeframeSelect);
         
-        // Append groups to container
-        selectorContainer.appendChild(pairGroup);
-        selectorContainer.appendChild(timeframeGroup);
+        // Add all elements to left group
+        leftGroup.appendChild(pairGroup);
+        leftGroup.appendChild(timeframeGroup);
+        leftGroup.appendChild(invertButton);
+        
+        // Add groups to container
+        selectorContainer.appendChild(leftGroup);
+        selectorContainer.appendChild(swapButton);
         
         // Get header bar and set its styles
         const headerBar = document.getElementById('header-bar');
         headerBar.style.display = 'flex';
-        headerBar.style.flexDirection = 'row'; // Force horizontal layout
+        headerBar.style.flexDirection = 'row';
         headerBar.style.alignItems = 'center';
         headerBar.style.justifyContent = 'flex-start';
         headerBar.style.gap = '10px';
         headerBar.style.padding = '4px';
         headerBar.style.width = '100%';
         headerBar.style.minHeight = '50px';
-        headerBar.style.flexWrap = 'nowrap'; // Prevent wrapping
+        headerBar.style.flexWrap = 'nowrap';
         
         headerBar.appendChild(selectorContainer);
         
         console.log('Selectors created');
+
+        // Remove the old toggle container since we've moved the invert button
+        if (this.toggleContainer) {
+            this.toggleContainer.remove();
+            this.toggleContainer = null;
+        }
     }
     
     updatePairSelector() {
@@ -693,9 +792,9 @@ class ChartController {
         this.updateChartTitle();
         
         // Create pair inversion toggle if it doesn't exist
-        if (!this.toggleContainer) {
-            this.createPairToggle();
-        }
+        // if (!this.toggleContainer) {
+        //     this.createPairToggle();
+        // }
         
         // Load data for the current pair (this is the first call to loadChartData)
         await this.loadChartData(); // Ensure this is awaited
@@ -737,51 +836,50 @@ class ChartController {
         });
     }
     
-    createPairToggle() {
-        // Create toggle button
-        this.toggleContainer = document.createElement('div');
-        this.toggleContainer.className = 'toggle-container';
-        // this.toggleContainer.style.position = 'absolute'; // Removed
-        // this.toggleContainer.style.top = '10px'; // Removed
-        // this.toggleContainer.style.right = '10px'; // Removed
-        // this.toggleContainer.style.zIndex = '5'; // Removed
+    // createPairToggle() {
+    //     // Create toggle button
+    //     this.toggleContainer = document.createElement('div');
+    //     // this.toggleContainer.style.position = 'absolute'; // Removed
+    //     // this.toggleContainer.style.top = '10px'; // Removed
+    //     // this.toggleContainer.style.right = '10px'; // Removed
+    //     // this.toggleContainer.style.zIndex = '5'; // Removed
         
-        const toggleButton = document.createElement('button');
-        toggleButton.textContent = 'Invert';
-        toggleButton.className = 'toggle-button';
-        toggleButton.style.padding = '8px 12px';
-        toggleButton.style.backgroundColor = '#f0f0f0';
-        toggleButton.style.border = '1px solid #ccc';
-        toggleButton.style.borderRadius = '4px';
-        toggleButton.style.cursor = 'pointer';
+    //     const toggleButton = document.createElement('button');
+    //     toggleButton.textContent = 'Invert';
+    //     toggleButton.className = 'toggle-button';
+    //     toggleButton.style.padding = '8px 12px';
+    //     toggleButton.style.backgroundColor = '#f0f0f0';
+    //     toggleButton.style.border = '1px solid #ccc';
+    //     toggleButton.style.borderRadius = '4px';
+    //     toggleButton.style.cursor = 'pointer';
         
-        this.toggleContainer.appendChild(toggleButton);
-        document.getElementById('header-bar').appendChild(this.toggleContainer);
+    //     this.toggleContainer.appendChild(toggleButton);
+    //     document.getElementById('header-bar').appendChild(this.toggleContainer);
         
-        // Add event listener
-        toggleButton.addEventListener('click', async () => {
-            this.isInverted = !this.isInverted;
-            toggleButton.textContent = 'Invert';
-            this.updateChartTitle();
-            this.updateQueryParams();
-            this.updateTradeHistory();
+    //     // Add event listener
+    //     toggleButton.addEventListener('click', async () => {
+    //         this.isInverted = !this.isInverted;
+    //         toggleButton.textContent = 'Invert';
+    //         this.updateChartTitle();
+    //         this.updateQueryParams();
+    //         this.updateTradeHistory();
             
-            // Reset price scale
-            if (this.candlestickSeries) {
-                this.chart.priceScale('right').applyOptions({
-                    autoScale: true,
-                    scaleMargins: {
-                        top: 0.1,
-                        bottom: 0.3,
-                    }
-                });
-            }
+    //         // Reset price scale
+    //         if (this.candlestickSeries) {
+    //             this.chart.priceScale('right').applyOptions({
+    //                 autoScale: true,
+    //                 scaleMargins: {
+    //                     top: 0.1,
+    //                     bottom: 0.3,
+    //                 }
+    //             });
+    //         }
             
-            // Reload data and fit content
-            await this.loadChartData();
-            this.chart.timeScale().fitContent();
-        });
-    }
+    //         // Reload data and fit content
+    //         await this.loadChartData();
+    //         this.chart.timeScale().fitContent();
+    //     });
+    // }
     
     async fetchSwapEvents() {
         if (!this.currentPair) {
