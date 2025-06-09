@@ -756,6 +756,7 @@
 
             /* Update chart container height to account for smaller header */
             #chart-container {
+                overflow: hidden !important;
                 height: calc(100vh - 88px);
                 /* 44px header + 44px footer */
                 margin-bottom: 44px;
@@ -795,7 +796,7 @@
     </div>
     <div id="chart-container">
         <div id="loading">Loading...</div>
-        <div id="error"></div>
+    <div id="error"></div>
     </div>
     <div id="trade-history">
         <table class="trade-history-table">
@@ -817,7 +818,7 @@
         <span>Trades</span>
         <span class="chevron-up">&#9650;</span> <!-- Unicode for UP-POINTING TRIANGLE -->
     </div>
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart.js"></script>
 
     <!-- Settings Modal -->
@@ -850,4 +851,4 @@
     </div>
 </body>
 
-</html>
+</html> 

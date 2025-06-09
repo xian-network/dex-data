@@ -50,7 +50,7 @@ class ChartController {
         this.populateThemeSelector();
         this.initThemeSelector();
         this.loadSavedTheme(); // This will call applyTheme with isInitialLoad = true
-
+        
         // Chart initialization will happen after loading pairs
         this.loadPairsAndInitialize(); // This is now async
 
@@ -585,8 +585,20 @@ class ChartController {
             // Update URL parameters
             this.updateQueryParams();
             
-            // Reload chart data for the new pair
-            this.loadChartData();
+            // Reset price scale and load new data
+            if (this.candlestickSeries) {
+                this.chart.priceScale('right').applyOptions({
+                    autoScale: true,
+                    scaleMargins: {
+                        top: 0.1,
+                        bottom: 0.3,
+                    }
+                });
+            }
+            
+            // Reload chart data and fit content
+            await this.loadChartData();
+            this.chart.timeScale().fitContent();
         } catch (err) {
             console.error('Pair change error:', err);
             const error = document.getElementById('error');
@@ -595,7 +607,7 @@ class ChartController {
         }
     }
     
-    async initializeChart() { // Made async
+    async initializeChart() {
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
             return;
@@ -613,39 +625,52 @@ class ChartController {
         
         const { createChart } = LightweightCharts;
         
-        // Create the chart
+        // Get computed styles for consistent theming
+        const computedStyles = getComputedStyle(document.body);
+        const backgroundColor = computedStyles.getPropertyValue('--chart-background').trim() || '#1a1a1a';
+        const textColor = computedStyles.getPropertyValue('--text-color').trim() || '#d4d4d4';
+        const gridColor = computedStyles.getPropertyValue('--chart-grid-color').trim() || '#2a2a2a';
+        const borderColor = computedStyles.getPropertyValue('--secondary-accent').trim();
+        const accentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+
+        // Create the chart with themed colors
         this.chart = createChart(this.chartContainer, {
             width: this.chartContainer.clientWidth,
             height: this.chartContainer.clientHeight,
             layout: {
                 background: { 
-                    color: '#1a1a1a'
+                    color: backgroundColor
                 },
-                textColor: '#d4d4d4',
+                textColor: textColor,
                 fontSize: 12,
                 fontFamily: "'Inter', 'Roboto', sans-serif",
+                panes: {
+                    separatorColor: borderColor,
+                    separatorHoverColor: accentColor,
+                    enableResize: true,
+                },
             },
             grid: {
-                vertLines: { color: '#2a2a2a' },
-                horzLines: { color: '#2a2a2a' }
+                vertLines: { color: gridColor },
+                horzLines: { color: gridColor }
             },
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
-                borderColor: '#2a2a2a',
-                textColor: '#d4d4d4',
+                borderColor: borderColor,
+                textColor: textColor,
                 fixRightEdge: true,
                 fixLeftEdge: true,
             },
             crosshair: {
                 mode: 1,
                 vertLine: {
-                    color: '#00ffff40',
+                    color: `${accentColor}40`,
                     width: 1,
                     style: 1,
                 },
                 horzLine: {
-                    color: '#00ffff40',
+                    color: `${accentColor}40`,
                     width: 1,
                     style: 1,
                 }
@@ -657,7 +682,7 @@ class ChartController {
                 },
             },
         });
-
+        
         // Initialize series
         this.initSeries();
         
@@ -683,7 +708,7 @@ class ChartController {
                     height: this.chartContainer.clientHeight
                 });
             }
-        }, 250); // 250ms delay
+        }, 1000); // 250ms delay
         window.addEventListener('resize', debouncedResize);
     }
     
@@ -734,13 +759,27 @@ class ChartController {
         document.getElementById('header-bar').appendChild(this.toggleContainer);
         
         // Add event listener
-        toggleButton.addEventListener('click', () => {
+        toggleButton.addEventListener('click', async () => {
             this.isInverted = !this.isInverted;
-            toggleButton.textContent = this.isInverted ? 'Show Original Pair' : 'Invert';
+            toggleButton.textContent = 'Invert';
             this.updateChartTitle();
             this.updateQueryParams();
             this.updateTradeHistory();
-            this.loadChartData();
+            
+            // Reset price scale
+            if (this.candlestickSeries) {
+                this.chart.priceScale('right').applyOptions({
+                    autoScale: true,
+                    scaleMargins: {
+                        top: 0.1,
+                        bottom: 0.3,
+                    }
+                });
+            }
+            
+            // Reload data and fit content
+            await this.loadChartData();
+            this.chart.timeScale().fitContent();
         });
     }
     
@@ -1043,9 +1082,9 @@ class ChartController {
                     close,
                     tradeCount: trades.length
                 });
-                
-                volumes.push({
-                    time: timestamp,
+                    
+                    volumes.push({
+                        time: timestamp,
                     value: volume,
                     color: close >= open ? volumeUpColor : volumeDownColor
                 });
@@ -1054,19 +1093,19 @@ class ChartController {
             } else if (previousClose !== null) {
                 // Empty interval with previous close
                 candles.push({
-                    time: timestamp,
-                    open: previousClose,
-                    high: previousClose,
-                    low: previousClose,
-                    close: previousClose,
-                    tradeCount: 0
+                        time: timestamp,
+                        open: previousClose,
+                        high: previousClose,
+                        low: previousClose,
+                        close: previousClose,
+                        tradeCount: 0
                 });
-                
-                volumes.push({
-                    time: timestamp,
-                    value: 0,
-                    color: '#80808040'
-                });
+                    
+                    volumes.push({
+                        time: timestamp,
+                        value: 0,
+                        color: '#80808040'
+                    });
             }
         }
         
@@ -1082,50 +1121,75 @@ class ChartController {
         if (this.volumeSeries) {
             this.chart.removeSeries(this.volumeSeries);
         }
+        
+        // Get computed styles for consistent theming
+        const computedStyles = getComputedStyle(document.body);
+        const textColor = computedStyles.getPropertyValue('--text-color').trim();
+        const borderColor = computedStyles.getPropertyValue('--secondary-accent').trim();
+        const backgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
 
-        // Create candlestick series
-        this.candlestickSeries = this.chart.addCandlestickSeries({
-            upColor: '#0066ff',
-            downColor: '#9933ff',
+        // Update chart options with current theme colors
+        this.chart.applyOptions({
+            layout: {
+                background: { 
+                    color: backgroundColor
+                },
+                textColor: textColor,
+                fontSize: 12,
+                fontFamily: "'Inter', 'Roboto', sans-serif",
+                panes: {
+                    separatorColor: borderColor,
+                    separatorHoverColor: `${borderColor}80`,
+                    enableResize: true,
+                },
+            }
+        });
+
+        // Import the series constructors from LightweightCharts
+        const { CandlestickSeries, HistogramSeries } = LightweightCharts;
+
+        // Create candlestick series in the main pane
+        this.candlestickSeries = this.chart.addSeries(CandlestickSeries, {
+            upColor: 'var(--buy-color)',
+            downColor: 'var(--sell-color)',
             borderVisible: true,
-            wickUpColor: '#0066ff',
-            wickDownColor: '#9933ff',
-            borderUpColor: '#0066ff',
-            borderDownColor: '#9933ff',
+            wickUpColor: 'var(--buy-color)',
+            wickDownColor: 'var(--sell-color)',
+            borderUpColor: 'var(--buy-color)',
+            borderDownColor: 'var(--sell-color)',
             priceFormat: {
                 type: 'price',
                 precision: 4,
                 minMove: 0.0001,
             },
-            // Position candlesticks in the upper 70% of the chart
             priceScaleId: 'right',
-            scaleMargins: {
-                top: 0.1,
-                bottom: 0.3,
-            },
         });
 
-        // Add volume histogram series with a separate price scale
-        this.volumeSeries = this.chart.addHistogramSeries({
-            color: '#0066ff80',
+        // Add volume histogram series to the second pane
+        this.volumeSeries = this.chart.addSeries(HistogramSeries, {
+            color: 'var(--primary-accent)',
             priceFormat: {
                 type: 'volume',
                 formatter: value => value.toFixed(2),
             },
-            // Use a separate price scale for volume
-            priceScaleId: 'volume',
-            // Position volume in the bottom 20% of the chart
+            priceScaleId: 'right',
+            base: 0,
             scaleMargins: {
-                top: 0.8, 
-                bottom: 0.0,
-            },
-        });
+                top: 0.3,
+                bottom: 0.3,
+            }
+        }, 1);
 
-        // Configure the price scale for the main pane
+        const secondPane = this.chart.panes()[1];
+        secondPane.setHeight(100);
+
+
+        // Configure the main price scale (right side)
         this.chart.priceScale('right').applyOptions({
+            visible: true,
             borderVisible: true,
-            borderColor: '#2a2a2a',
-            textColor: '#d4d4d4',
+            borderColor: borderColor,
+            textColor: textColor,
             autoScale: true,
             mode: 0,
             alignLabels: true,
@@ -1133,12 +1197,7 @@ class ChartController {
             ticksVisible: true,
             scaleMargins: {
                 top: 0.1,
-                bottom: 0.3, // Leave space for volume
-            },
-            priceFormat: {
-                type: 'price',
-                precision: 4,
-                minMove: 0.0001,
+                bottom: 0.1,
             },
         });
 
@@ -1146,39 +1205,21 @@ class ChartController {
         this.chart.priceScale('volume').applyOptions({
             visible: true,
             borderVisible: true,
-            borderColor: '#2a2a2a',
-            textColor: '#d4d4d4',
+            borderColor: borderColor,
+            textColor: textColor,
             autoScale: true,
             scaleMargins: {
-                top: 0.8,
-                bottom: 0.0,
+                top: 0.1,
+                bottom: 0.1,
             },
-            entireTextOnly: true,
-            position: 'left',
+            position: 'right',
         });
 
-        // Add a visual separator between price and volume areas
-        const separator = document.createElement('div');
-        separator.style.position = 'absolute';
-        separator.style.left = '0';
-        separator.style.right = '0';
-        separator.style.height = '1px';
-        separator.style.backgroundColor = '#2a2a2a';
-        separator.style.top = '70%';
-        separator.style.zIndex = '3';
-        this.chartContainer.appendChild(separator);
-
-        // Add a volume label
-        const volumeLabel = document.createElement('div');
-        volumeLabel.style.position = 'absolute';
-        volumeLabel.style.left = '10px';
-        volumeLabel.style.bottom = '25%';
-        volumeLabel.style.color = '#d4d4d4';
-        volumeLabel.style.fontSize = '12px';
-        volumeLabel.style.fontFamily = "'Inter', 'Roboto', sans-serif";
-        volumeLabel.style.zIndex = '3';
-        volumeLabel.textContent = 'Volume';
-        this.chartContainer.appendChild(volumeLabel);
+        // Remove any old separators or labels that might exist
+        const oldSeparator = this.chartContainer.querySelector('div[style*="position: absolute"]');
+        const oldVolumeLabel = this.chartContainer.querySelector('div[style*="bottom: 25%"]');
+        if (oldSeparator) oldSeparator.remove();
+        if (oldVolumeLabel) oldVolumeLabel.remove();
     }
 
     async loadChartData() {
@@ -1187,12 +1228,6 @@ class ChartController {
         
         loading.style.display = 'block';
         error.style.display = 'none';
-        
-        // Clear trade history while loading
-        const tableBody = document.getElementById('trade-history-body');
-        if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Loading trades...</td></tr>';
-        }
         
         try {
             console.log(`Loading chart data for pair ${this.currentPair.id}`);
@@ -1221,19 +1256,13 @@ class ChartController {
                 this.volumeByTime.set(vol.time, vol.value);
             });
             
-            // Explicitly configure the visible time range to include current candle
-            const visibleLogicalRange = {
-                from: Math.max(0, chartData.candles.length - 50),
-                to: chartData.candles.length + 5
-            };
-            
-            console.log(`Setting visible range: ${JSON.stringify(visibleLogicalRange)}`);
-            
             // First fit all content
             this.chart.timeScale().fitContent();
             
-            // Then set the visible range
-            this.chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
+            // Then ensure price scale is properly fitted
+            this.chart.priceScale('right').applyOptions({
+                autoScale: true
+            });
             
             loading.style.display = 'none';
         } catch (err) {
@@ -1361,7 +1390,7 @@ class ChartController {
                     'var(--buy-color)' : 'var(--sell-color)';
                 
                 const x = param.point.x;
-                const y = this.chartContainer.clientHeight * 0.8;
+                const y = param.point.y;
                 
                 this.volumeTooltip.innerHTML = `<span style="color: ${color}">Volume: ${formattedVolume}</span>`;
                 this.volumeTooltip.style.left = x + 15 + 'px';
