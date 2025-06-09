@@ -8,6 +8,186 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --background-color: #1a1a1a;
+            --text-color: #d4d4d4;
+            --header-background: #1f1f1f;
+            --header-text-color: #00ffff; /* For labels like 'Trading Pair:' in .selector-container */
+            --primary-accent: #00ffff;
+            --secondary-accent: #2a2a2a; /* Borders, grid lines */
+            --chart-background: #1a1a1a;
+            --chart-grid-color: #2a2a2a;
+            --chart-text-color: #d4d4d4;
+            --modal-background: #2a2a2a;
+            --modal-text-color: #d4d4d4;
+            --modal-border-color: #444;
+            --modal-close-color: #aaa;
+            --modal-close-hover-color: #00ffff;
+            --input-background: #1a1a1a;
+            --input-text-color: #d4d4d4;
+            --input-border-color: #3a3a3a;
+            --input-focus-border-color: #00ffff;
+            --input-focus-shadow-color: rgba(0, 255, 255, 0.2);
+            --button-background: #2a2a2a;
+            --button-text-color: #00ffff;
+            --button-hover-background: #3a3a3a;
+            --button-hover-border-color: rgba(0, 255, 255, 0.5); /* #00ffff50 */
+            --scrollbar-track: #1a1a1a;
+            --scrollbar-thumb: #2a2a2a;
+            --scrollbar-thumb-hover: #3a3a3a;
+            --buy-color: #0066ff;
+            --sell-color: #9933ff;
+            --error-text-color: #ff0099;
+            --error-border-color: rgba(255, 0, 153, 0.31); /* #ff009950 */
+            --loader-text-color: #00ffff; /* Matches primary accent */
+            --link-color: #00ffff; /* For future links if any, or for the signer address */
+        }
+
+        /* Theme Overrides */
+        .theme-dark-default { /* This class will be on body */
+            /* Variables are already defined in :root, this is for explicit association */
+        }
+
+        .theme-light {
+            --background-color: #f4f4f4;
+            --text-color: #333333;
+            --header-background: #e9ecef;
+            --header-text-color: #007bff;
+            --primary-accent: #007bff;
+            --secondary-accent: #ced4da;
+            --chart-background: #ffffff;
+            --chart-grid-color: #e0e0e0;
+            --chart-text-color: #333333;
+            --modal-background: #ffffff;
+            --modal-text-color: #333333;
+            --modal-border-color: #ced4da;
+            --modal-close-color: #6c757d;
+            --modal-close-hover-color: #0056b3;
+            --input-background: #ffffff;
+            --input-text-color: #495057;
+            --input-border-color: #ced4da;
+            --input-focus-border-color: #80bdff;
+            --input-focus-shadow-color: rgba(0, 123, 255, 0.25);
+            --button-background: #007bff;
+            --button-text-color: #ffffff;
+            --button-hover-background: #0056b3;
+            --button-hover-border-color: rgba(0, 91, 179, 0.5);
+            --scrollbar-track: #f0f0f0; /* Slightly different from body bg */
+            --scrollbar-thumb: #ced4da;
+            --scrollbar-thumb-hover: #adb5bd;
+            --buy-color: #28a745;
+            --sell-color: #dc3545;
+            --error-text-color: #dc3545;
+            --error-border-color: rgba(220, 53, 69, 0.31);
+            --loader-text-color: #007bff;
+            --link-color: #007bff;
+        }
+
+        .theme-ocean-blue {
+            --background-color: #0f1c2e;
+            --text-color: #e0f7fa;
+            --header-background: #172a46;
+            --header-text-color: #80deea;
+            --primary-accent: #80deea;
+            --secondary-accent: #264163;
+            --chart-background: #122036;
+            --chart-grid-color: #264163;
+            --chart-text-color: #e0f7fa;
+            --modal-background: #172a46;
+            --modal-text-color: #e0f7fa;
+            --modal-border-color: #264163;
+            --modal-close-color: #b0bec5;
+            --modal-close-hover-color: #80deea;
+            --input-background: #122036;
+            --input-text-color: #e0f7fa;
+            --input-border-color: #264163;
+            --input-focus-border-color: #80deea;
+            --input-focus-shadow-color: rgba(128, 222, 234, 0.25);
+            --button-background: #0077c2;
+            --button-text-color: #ffffff;
+            --button-hover-background: #005082;
+            --button-hover-border-color: rgba(128, 222, 234, 0.5);
+            --scrollbar-track: #0f1c2e;
+            --scrollbar-thumb: #264163;
+            --scrollbar-thumb-hover: #375a80;
+            --buy-color: #4dd0e1;
+            --sell-color: #ff7043;
+            --error-text-color: #ff5252;
+            --error-border-color: rgba(255, 82, 82, 0.3);
+            --loader-text-color: #80deea;
+            --link-color: #80deea;
+        }
+
+        .theme-forest-green {
+            --background-color: #1a2e24;
+            --text-color: #e8f5e9;
+            --header-background: #253f32;
+            --header-text-color: #a5d6a7;
+            --primary-accent: #a5d6a7;
+            --secondary-accent: #385946;
+            --chart-background: #1e362a;
+            --chart-grid-color: #385946;
+            --chart-text-color: #e8f5e9;
+            --modal-background: #253f32;
+            --modal-text-color: #e8f5e9;
+            --modal-border-color: #385946;
+            --modal-close-color: #c8e6c9;
+            --modal-close-hover-color: #a5d6a7;
+            --input-background: #1e362a;
+            --input-text-color: #e8f5e9;
+            --input-border-color: #385946;
+            --input-focus-border-color: #a5d6a7;
+            --input-focus-shadow-color: rgba(165, 214, 167, 0.25);
+            --button-background: #4caf50;
+            --button-text-color: #ffffff;
+            --button-hover-background: #388e3c;
+            --button-hover-border-color: rgba(165, 214, 167, 0.5);
+            --scrollbar-track: #1a2e24;
+            --scrollbar-thumb: #385946;
+            --scrollbar-thumb-hover: #4a745c;
+            --buy-color: #66bb6a;
+            --sell-color: #ef5350;
+            --error-text-color: #f44336;
+            --error-border-color: rgba(244, 67, 54, 0.3);
+            --loader-text-color: #a5d6a7;
+            --link-color: #a5d6a7;
+        }
+
+        .theme-royal-purple {
+            --background-color: #2a1a3e;
+            --text-color: #f3e5f5;
+            --header-background: #392550;
+            --header-text-color: #ce93d8;
+            --primary-accent: #ce93d8;
+            --secondary-accent: #4e3468;
+            --chart-background: #301f48;
+            --chart-grid-color: #4e3468;
+            --chart-text-color: #f3e5f5;
+            --modal-background: #392550;
+            --modal-text-color: #f3e5f5;
+            --modal-border-color: #4e3468;
+            --modal-close-color: #e1bee7;
+            --modal-close-hover-color: #ce93d8;
+            --input-background: #301f48;
+            --input-text-color: #f3e5f5;
+            --input-border-color: #4e3468;
+            --input-focus-border-color: #ce93d8;
+            --input-focus-shadow-color: rgba(206, 147, 216, 0.25);
+            --button-background: #8e44ad;
+            --button-text-color: #ffffff;
+            --button-hover-background: #6a1b9a;
+            --button-hover-border-color: rgba(206, 147, 216, 0.5);
+            --scrollbar-track: #2a1a3e;
+            --scrollbar-thumb: #4e3468;
+            --scrollbar-thumb-hover: #624380;
+            --buy-color: #ba68c8;
+            --sell-color: #f06292;
+            --error-text-color: #ec407a;
+            --error-border-color: rgba(236, 64, 122, 0.3);
+            --loader-text-color: #ce93d8;
+            --link-color: #ce93d8;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,8 +195,8 @@
         }
 
         body {
-            background-color: #1a1a1a;
-            color: #d4d4d4;
+            background-color: var(--background-color);
+            color: var(--text-color);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
@@ -28,14 +208,14 @@
             position: relative;
             width: 100%;
             height: calc(70vh - 120px);
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #2a2a2a;
+            background-color: var(--chart-background);
+            border-bottom: 1px solid var(--secondary-accent);
         }
 
         #trade-history {
             height: 30vh;
             overflow-y: auto;
-            background-color: #1a1a1a;
+            background-color: var(--background-color); /* Use main background */
             padding: 20px;
         }
 
@@ -46,8 +226,8 @@
         }
 
         .trade-history-table th {
-            background-color: #2a2a2a;
-            color: #00ffff;
+            background-color: var(--secondary-accent); /* Table header distinct from main bg */
+            color: var(--header-text-color); /* Use header text color for TH text */
             padding: 12px;
             text-align: left;
             font-weight: 500;
@@ -58,19 +238,19 @@
 
         .trade-history-table td {
             padding: 8px 12px;
-            border-bottom: 1px solid #2a2a2a;
+            border-bottom: 1px solid var(--secondary-accent);
         }
 
         .trade-history-table tr:hover {
-            background-color: #2a2a2a;
+            background-color: var(--secondary-accent); /* Use secondary for hover */
         }
 
         .buy-row td {
-            color: #0066ff;
+            color: var(--buy-color);
         }
 
         .sell-row td {
-            color: #9933ff;
+            color: var(--sell-color);
         }
 
         /* Scrollbar styling */
@@ -80,16 +260,16 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #1a1a1a;
+            background: var(--scrollbar-track);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #2a2a2a;
+            background: var(--scrollbar-thumb);
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #3a3a3a;
+            background: var(--scrollbar-thumb-hover);
         }
 
         /* Loading and error states */
@@ -100,62 +280,154 @@
             transform: translate(-50%, -50%);
             padding: 20px;
             border-radius: 8px;
-            background-color: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            color: #00ffff;
+            background-color: var(--modal-background); /* Use modal bg for loader/error box */
+            border: 1px solid var(--modal-border-color); /* Use modal border */
+            color: var(--loader-text-color); /* Specific loader text color */
             font-size: 14px;
             display: none;
         }
 
         #error {
-            color: #ff0099;
-            border-color: #ff009950;
+            color: var(--error-text-color);
+            border-color: var(--error-border-color);
         }
 
         /* Select dropdowns hover and focus states */
-        select:hover {
-            border-color: #00ffff50 !important;
+        select:hover { /* Applies to #theme-select and .pair-select, .timeframe-select */
+            border-color: var(--input-focus-border-color) !important; /* Use focus border color for hover */
         }
 
         select:focus {
             outline: none;
-            border-color: #00ffff !important;
-            box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
+            border-color: var(--input-focus-border-color) !important;
+            box-shadow: 0 0 0 2px var(--input-focus-shadow-color);
         }
 
         /* Toggle button styling */
-        .toggle-button {
-            background-color: #2a2a2a !important;
-            color: #00ffff !important;
-            border: 1px solid #3a3a3a !important;
+        .toggle-button { /* This class is dynamically added in chart.js */
+            background-color: var(--button-background) !important;
+            color: var(--button-text-color) !important;
+            border: 1px solid var(--input-border-color) !important; /* Consistent border like inputs */
             transition: all 0.3s ease !important;
         }
 
         .toggle-button:hover {
-            background-color: #3a3a3a !important;
-            border-color: #00ffff50 !important;
+            background-color: var(--button-hover-background) !important;
+            border-color: var(--button-hover-border-color) !important;
         }
 
         #header-bar {
             display: flex;
-            flex-wrap: wrap; /* Allow items to wrap on smaller screens */
-            align-items: center; /* Vertically align items */
-            justify-content: flex-start; /* Align items to the start */
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
             padding: 10px;
-            background-color: #1f1f1f; /* Slightly different from chart bg for distinction */
-            border-bottom: 1px solid #2a2a2a;
-            gap: 20px; /* Gap between direct children (selector-container and toggle-container) */
+            background-color: var(--header-background);
+            border-bottom: 1px solid var(--secondary-accent);
+            gap: 20px;
         }
 
-        /* Adjustments for the containers within the header bar if needed */
-        /* The .selector-container already has flex styles from JS, ensure they don't conflict */
-        /* We might remove background and padding from .selector-container if header-bar provides it */
-        .selector-container {
-            /* background-color: transparent !important; /* Override JS style */
-            /* padding: 0 !important; */ /* Override JS style */
-            /* box-shadow: none !important; */ /* Override JS style */
-            /* These overrides might be needed if JS styles are too specific */
+        .header-icon { /* For the settings gear icon */
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            margin-left: auto;
+            padding: 5px;
+            display: flex;
+            align-items: center;
         }
+
+        .header-icon:hover {
+            color: var(--primary-accent);
+        }
+
+        /* Settings Modal Styles */
+        #settings-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6); /* Backdrop for modal */
+        }
+
+        .modal-content {
+            background-color: var(--modal-background);
+            color: var(--modal-text-color);
+            margin: 10% auto;
+            padding: 25px;
+            border: 1px solid var(--modal-border-color);
+            width: 80%;
+            max-width: 450px;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .close-button {
+            color: var(--modal-close-color);
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--modal-close-hover-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #theme-selector-container {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #theme-selector-container label {
+            font-weight: 500;
+            color: var(--modal-text-color); /* Ensure label uses modal text color */
+        }
+
+        #theme-select { /* The dropdown in the modal */
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--input-border-color);
+            background-color: var(--input-background);
+            color: var(--input-text-color);
+            font-family: 'Inter', sans-serif;
+            flex-grow: 1;
+        }
+        /* End Settings Modal Styles */
+
+        /* Adjustments for the containers within the header bar if needed */
+        /* The .selector-container (created by JS) holds pair and timeframe selectors */
+        .selector-container {
+            /* Existing JS styles: backgroundColor, padding, borderRadius, display, gap, alignItems */
+            /* Override specific ones if needed, or ensure JS uses CSS variables */
+            background-color: var(--header-background) !important; /* Match header */
+            padding: 8px !important; /* JS sets padding */
+            border-radius: 4px !important; /* JS sets border-radius */
+        }
+        .selector-container label { /* Labels like "Trading Pair:", "Timeframe:" */
+            color: var(--header-text-color) !important; /* Use header text color for these labels */
+            font-weight: 500 !important;
+        }
+        .pair-select, .timeframe-select { /* Classes for selects created by JS */
+            padding: 8px 12px !important; /* JS sets padding */
+            border-radius: 4px !important; /* JS sets border-radius */
+            border: 1px solid var(--input-border-color) !important; /* Use themeable border */
+            background-color: var(--input-background) !important; /* Use themeable background */
+            color: var(--input-text-color) !important; /* Use themeable text color */
+            min-width: 150px; /* Adjusted min-width */
+        }
+
 
         /* Style the toggle button to fit the dark theme */
         /* Styles for .toggle-button are already present and seem mostly compatible.
@@ -163,55 +435,55 @@
            if not already covered or if needing override without !important for these specific properties.
            The background, color, and border are already using !important from existing rules.
         */
-        .toggle-button {
-            border-radius: 4px; /* Ensure border-radius */
-            padding: 8px 12px; /* Ensure padding */
-            cursor: pointer; /* Ensure cursor */
-            /* background-color, color, border, transition are already defined with !important */
+        .toggle-button { /* This is also for the Invert Pair button */
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            /* background-color, color, border are already using !important with var() above */
             /* transition: background-color 0.3s ease, border-color 0.3s ease; */ /* Already defined */
         }
 
-        .toggle-button:hover {
-            /* background-color and border-color hover effects are already defined with !important */
-        }
+        /* .toggle-button:hover is already defined above using vars */
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
             #header-bar {
-                flex-direction: column; /* Stack items vertically */
-                align-items: stretch; /* Stretch items to full width */
-                gap: 10px; /* Reduce gap for stacked items */
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
             }
 
             .selector-container {
-                flex-direction: column; /* Stack selectors and labels */
-                align-items: stretch; /* Stretch items */
-                width: 100%; /* Take full width */
-                gap: 8px; /* Gap between label and select */
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+                gap: 8px;
             }
 
             .selector-container label {
-                margin-bottom: 4px; /* Space below label */
+                margin-bottom: 4px;
             }
 
             .pair-select, .timeframe-select {
-                width: 100%; /* Make selects take full width */
+                width: 100%;
             }
 
-            .toggle-container {
-                width: 100%; /* Make toggle container take full width */
-                display: flex; /* To allow button centering or full width */
+            .toggle-container { /* Container for Invert Pair button */
+                width: 100%;
+                display: flex;
             }
 
-            .toggle-button {
-                flex-grow: 1; /* Make button take full width if desired */
+            .toggle-button { /* Invert Pair button specifically */
+                flex-grow: 1;
                 text-align: center;
             }
         }
     </style>
 </head>
 <body>
-    <div id="header-bar"></div>
+    <div id="header-bar">
+        <span id="settings-gear-icon" class="header-icon">&#9881;</span>
+    </div>
     <div id="chart-container">
         <div id="loading">Loading...</div>
         <div id="error"></div>
@@ -234,5 +506,21 @@
     </div>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart.js"></script>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Settings</h2>
+            <div id="theme-selector-container">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            <!-- Additional settings can be added here -->
+        </div>
+    </div>
 </body>
 </html> 

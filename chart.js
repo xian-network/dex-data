@@ -25,6 +25,16 @@ class ChartController {
             { label: '1d', minutes: 1440 }
         ];
         this.currentTimeframe = this.timeframes.find(tf => tf.minutes === 60) || this.timeframes[0]; // Default to 1h
+        this.activeThemeClassName = ''; // Initialize active theme class name
+        this.themeSelect = null; // Initialize theme select element reference
+
+        this.themes = [
+            { name: "Dark Default", className: "theme-dark-default" },
+            { name: "Light Mode", className: "theme-light" },
+            { name: "Ocean Blue", className: "theme-ocean-blue" },
+            { name: "Forest Green", className: "theme-forest-green" },
+            { name: "Royal Purple", className: "theme-royal-purple" }
+        ];
         
         const chartContainer = document.getElementById('chart-container');
         this.chartContainer = chartContainer;
@@ -32,8 +42,14 @@ class ChartController {
         // Create containers for selectors
         this.createSelectors();
         
+        // Initialize Modal, Theme Selector, and load saved theme
+        this.initModalControls();
+        this.populateThemeSelector();
+        this.initThemeSelector();
+        this.loadSavedTheme(); // This will call applyTheme with isInitialLoad = true
+
         // Chart initialization will happen after loading pairs
-        this.loadPairsAndInitialize();
+        this.loadPairsAndInitialize(); // This is now async
     }
 
     async loadPairsAndInitialize() {
@@ -70,8 +86,12 @@ class ChartController {
             // Update selectors to match current state
             this.updateSelectorsFromState();
             
-            // Initialize the chart
-            this.initializeChart();
+            // Initialize the chart (which includes an initial loadChartData)
+            this.initializeChart(); // This calls loadChartData internally
+
+            // After chart and initial data are loaded, apply the theme to chart elements
+            // Note: initializeChart calls loadChartData, so this will run after the first data load.
+            await this.applyCurrentThemeToChart();
             
             loading.style.display = 'none';
             
@@ -396,7 +416,7 @@ class ChartController {
         }
     }
     
-    initializeChart() {
+    async initializeChart() { // Made async
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
             return;
@@ -473,8 +493,8 @@ class ChartController {
             this.createPairToggle();
         }
         
-        // Load data for the current pair
-        this.loadChartData();
+        // Load data for the current pair (this is the first call to loadChartData)
+        await this.loadChartData(); // Ensure this is awaited
         
         // Handle window resizing
         const debouncedResize = debounce(() => {
@@ -832,6 +852,13 @@ class ChartController {
         const volumes = [];
         let previousClose = null;
         let currentCandle = null;
+
+        // Get current theme colors for volume bars
+        const computedBodyStyles = getComputedStyle(document.body);
+        const buyColor = computedBodyStyles.getPropertyValue('--buy-color').trim();
+        const sellColor = computedBodyStyles.getPropertyValue('--sell-color').trim();
+        const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80'; // Append alpha, provide fallback
+        const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80'; // Append alpha, provide fallback
         
         // Process each interval
         for (let i = 0; i < intervals.length; i++) {
@@ -875,7 +902,7 @@ class ChartController {
                 volumes.push({
                     time: timestamp,
                     value: totalVolume,
-                    color: firstCandle.close >= firstCandle.open ? '#0066ff80' : '#9933ff80'
+                    color: firstCandle.close >= firstCandle.open ? volumeUpColor : volumeDownColor
                 });
                 
                 if (isCurrentInterval) currentCandle = firstCandle;
@@ -904,7 +931,7 @@ class ChartController {
                     volumes.push({
                         time: timestamp,
                         value: totalVolume,
-                        color: candle.close >= candle.open ? '#0066ff80' : '#9933ff80'
+                        color: candle.close >= candle.open ? volumeUpColor : volumeDownColor
                     });
                     
                     if (isCurrentInterval) {
@@ -1249,6 +1276,203 @@ class ChartController {
                 this.volumeTooltip.style.display = 'none';
             }
         });
+    }
+
+    populateThemeSelector() {
+        this.themeSelect = document.getElementById('theme-select'); // Store reference
+        if (!this.themeSelect) {
+            console.error('Theme select element #theme-select not found.');
+            return;
+        }
+
+        // Clear existing placeholder options
+        this.themeSelect.innerHTML = '';
+
+        // Populate with defined themes
+        this.themes.forEach(theme => {
+            const option = document.createElement('option');
+            option.value = theme.className;
+            option.textContent = theme.name;
+            this.themeSelect.appendChild(option);
+        });
+
+        console.log('Theme selector populated.');
+    }
+
+    initThemeSelector() {
+        if (!this.themeSelect) { // Use stored reference
+            console.error('Theme select element #theme-select for event listener not found.');
+            return;
+        }
+        this.themeSelect.addEventListener('change', (event) => {
+            this.applyTheme(event.target.value, false); // Pass false for isInitialLoad
+        });
+        console.log('Theme selector initialized.');
+    }
+
+    applyTheme(themeClassName, isInitialLoad = false) {
+        if (!themeClassName) return;
+
+        // Always update body class, localStorage, and select element
+        this.themes.forEach(theme => {
+            document.body.classList.remove(theme.className);
+        });
+        document.body.classList.add(themeClassName);
+        localStorage.setItem('selectedTheme', themeClassName);
+        this.activeThemeClassName = themeClassName; // Store active theme class
+
+        if (this.themeSelect) { // Check if themeSelect is initialized
+            this.themeSelect.value = themeClassName;
+        }
+        console.log(`Theme ${themeClassName} applied. Initial load: ${isInitialLoad}`);
+
+        // Conditionally update chart style if not initial load and chart exists
+        if (!isInitialLoad && this.chart) {
+            const computedStyles = getComputedStyle(document.body);
+            const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
+            const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
+            const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
+            const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+            const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
+            const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
+
+            this.chart.applyOptions({
+                layout: {
+                    background: { color: chartBackgroundColor },
+                    textColor: chartTextColor,
+                },
+                grid: {
+                    vertLines: { color: chartGridColor },
+                    horzLines: { color: chartGridColor },
+                },
+                watermark: {
+                    color: watermarkColor,
+                },
+                crosshair: {
+                    vertLine: { color: crosshairColor },
+                    horzLine: { color: crosshairColor },
+                }
+            });
+
+            if (this.candlestickSeries) {
+                const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+                const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
+                this.candlestickSeries.applyOptions({
+                    upColor: buyColor,
+                    downColor: sellColor,
+                    wickUpColor: buyColor,
+                    wickDownColor: sellColor,
+                    borderUpColor: buyColor,
+                    borderDownColor: sellColor,
+                });
+            }
+
+            if (this.currentPair) { // Ensure a pair is selected before reloading data
+                this.loadChartData();
+            }
+        }
+    }
+
+    loadSavedTheme() {
+        let themeToLoad = localStorage.getItem('selectedTheme');
+        // Validate theme and default if necessary
+        if (!themeToLoad || !this.themes.find(t => t.className === themeToLoad)) {
+            themeToLoad = this.themes.length > 0 ? this.themes[0].className : 'theme-dark-default'; // Fallback if themes array is empty
+        }
+        this.applyTheme(themeToLoad, true); // Pass true for isInitialLoad
+        // console.log is already in applyTheme, this one is redundant: console.log(`Loaded saved theme: ${themeToLoad} (or default). Initial load: true`);
+    }
+
+    async applyCurrentThemeToChart() {
+        // This method will apply the active theme's colors to chart elements.
+        // It's called after the chart is initialized and initial data is loaded.
+        if (!this.chart || !this.candlestickSeries || !this.activeThemeClassName) {
+            console.warn("Chart, candlestickSeries, or activeThemeClassName not ready for applyCurrentThemeToChart. Active theme: ", this.activeThemeClassName);
+            return;
+        }
+        console.log("applyCurrentThemeToChart: Applying styling for theme - ", this.activeThemeClassName);
+
+        const computedStyles = getComputedStyle(document.body);
+        const chartBackgroundColor = computedStyles.getPropertyValue('--chart-background').trim();
+        const chartTextColor = computedStyles.getPropertyValue('--chart-text-color').trim();
+        const chartGridColor = computedStyles.getPropertyValue('--chart-grid-color').trim();
+        const primaryAccentColor = computedStyles.getPropertyValue('--primary-accent').trim();
+        // Ensure watermark has low alpha, e.g., '12' for ~7% opacity if hex
+        const watermarkColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}12` : primaryAccentColor;
+        // Ensure crosshair has some transparency, e.g., '40' for ~25% opacity if hex
+        const crosshairColor = primaryAccentColor.startsWith('#') ? `${primaryAccentColor}40` : primaryAccentColor;
+
+        this.chart.applyOptions({
+            layout: {
+                background: { color: chartBackgroundColor },
+                textColor: chartTextColor,
+            },
+            grid: {
+                vertLines: { color: chartGridColor },
+                horzLines: { color: chartGridColor },
+            },
+            watermark: { // Watermark options are part of top-level options, not layout
+                color: watermarkColor,
+            },
+            crosshair: {
+                vertLine: { color: crosshairColor },
+                horzLine: { color: crosshairColor },
+            }
+        });
+
+        // this.candlestickSeries is already checked by the guard clause
+        const buyColor = computedStyles.getPropertyValue('--buy-color').trim();
+        const sellColor = computedStyles.getPropertyValue('--sell-color').trim();
+        this.candlestickSeries.applyOptions({
+            upColor: buyColor,
+            downColor: sellColor,
+            wickUpColor: buyColor,
+            wickDownColor: sellColor,
+            borderUpColor: buyColor,
+            borderDownColor: sellColor,
+        });
+
+        // Note: Volume bar colors are handled in processSwapEvents by reading computed styles directly.
+        // No need to call loadChartData() here as this method is for styling existing chart structure.
+        console.log("applyCurrentThemeToChart: Chart styles updated for theme - ", this.activeThemeClassName);
+    }
+
+    initModalControls() {
+        const settingsGearIcon = document.getElementById('settings-gear-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeButton = settingsModal ? settingsModal.querySelector('.close-button') : null;
+
+        if (!settingsGearIcon) {
+            console.error('Settings gear icon #settings-gear-icon not found.');
+            return;
+        }
+        if (!settingsModal) {
+            console.error('Settings modal #settings-modal not found.');
+            return;
+        }
+        if (!closeButton) {
+            console.error('Close button .close-button within modal not found.');
+            return;
+        }
+
+        settingsGearIcon.addEventListener('click', () => {
+            const isDisplayed = settingsModal.style.display === 'block';
+            settingsModal.style.display = isDisplayed ? 'none' : 'block';
+            console.log(`Settings modal toggled ${isDisplayed ? 'off' : 'on'}`);
+        });
+
+        closeButton.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+            console.log('Settings modal closed by button.');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === settingsModal) { // Clicked on the modal backdrop
+                settingsModal.style.display = 'none';
+                console.log('Settings modal closed by clicking outside.');
+            }
+        });
+        console.log('Modal controls initialized.');
     }
 }
 
