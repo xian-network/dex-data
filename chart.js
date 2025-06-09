@@ -23,6 +23,139 @@ class ChartController {
         
         // Chart initialization will happen after loading pairs
         this.loadPairsAndInitialize();
+
+        // Get references to trades modal elements
+        this.tradesFooter = document.getElementById('trades-footer');
+        this.tradesModal = document.getElementById('trades-modal');
+        this.modalCloseButton = document.getElementById('modal-close-button');
+        this.modalTradesContent = document.getElementById('modal-trades-content');
+
+        // Add event listeners for modal
+        if (this.tradesFooter) {
+            this.tradesFooter.addEventListener('click', () => this.openTradesModal());
+        }
+        if (this.modalCloseButton) {
+            this.modalCloseButton.addEventListener('click', () => this.closeTradesModal());
+        }
+        if (this.tradesModal) {
+           this.tradesModal.addEventListener('click', (event) => {
+               if (event.target === this.tradesModal) { // Check if the click is on the backdrop itself
+                   this.closeTradesModal();
+               }
+           });
+        }
+    }
+
+    openTradesModal() {
+        if (!this.tradesModal) return;
+        this.populateTradesModal(); // Populate content first
+        this.tradesModal.classList.remove('hidden'); // Remove .hidden for slideDown if present
+        this.tradesModal.style.display = 'block'; // Triggers slideUp animation
+        document.body.style.overflow = 'hidden'; // Prevent body scrolling
+    }
+
+    closeTradesModal() {
+        if (!this.tradesModal || this.tradesModal.style.display === 'none') return;
+
+        const handleAnimationEnd = () => {
+            // Only hide if the .hidden class is still present (i.e., not re-opened)
+            if (this.tradesModal.classList.contains('hidden')) {
+                this.tradesModal.style.display = 'none';
+            }
+            this.tradesModal.removeEventListener('animationend', handleAnimationEnd); // Clean up listener
+        };
+
+        this.tradesModal.addEventListener('animationend', handleAnimationEnd);
+        this.tradesModal.classList.add('hidden'); // Trigger slideDown animation
+
+        // Fallback: if animation doesn't fire for some reason
+        setTimeout(() => {
+             if (this.tradesModal.classList.contains('hidden')) {
+                  this.tradesModal.style.display = 'none';
+             }
+             document.body.style.overflow = ''; // Ensure body scrolling is restored
+        }, 300); // Duration of animation in ms, should match CSS
+
+        document.body.style.overflow = ''; // Restore body scrolling
+    }
+
+    populateTradesModal() {
+        if (!this.modalTradesContent || !this.currentPair) return;
+
+        this.modalTradesContent.innerHTML = ''; // Clear previous content
+
+        if (!this.rawTrades || this.rawTrades.length === 0) {
+            this.modalTradesContent.innerHTML = '<p style="text-align: center; padding: 20px;">No trades found for this pair.</p>';
+            return;
+        }
+
+        // Sort by timestamp (newest first)
+        const sortedTrades = [...this.rawTrades].sort((a, b) => b.timestamp - a.timestamp);
+
+        const token0 = this.tokens.get(this.currentPair.token0);
+        const token1 = this.tokens.get(this.currentPair.token1);
+        const symbol0 = token0?.symbol || this.currentPair.token0;
+        const symbol1 = token1?.symbol || this.currentPair.token1;
+
+        sortedTrades.forEach(trade => {
+            const tradeDiv = document.createElement('div');
+            tradeDiv.className = 'trade-entry';
+
+            const time = trade.timestamp;
+            const data = trade.data;
+
+            const hours = time.getUTCHours();
+            const minutes = time.getUTCMinutes();
+            const seconds = time.getUTCSeconds();
+            const day = time.getUTCDate();
+            const month = time.getUTCMonth() + 1;
+            const year = time.getUTCFullYear();
+
+            const formattedTime = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} UTC`;
+
+            const tradeType = this.determineTradeType(data);
+
+            const amount0In = parseFloat(data.amount0In) || 0;
+            const amount0Out = parseFloat(data.amount0Out) || 0;
+            const amount1In = parseFloat(data.amount1In) || 0;
+            const amount1Out = parseFloat(data.amount1Out) || 0;
+
+            let price = 0;
+            if (amount0Out > 0 && amount1In > 0) price = amount1In / amount0Out;
+            else if (amount0In > 0 && amount1Out > 0) price = amount1Out / amount0In;
+            if (this.isInverted && price > 0) price = 1 / price;
+
+            let amount, value, amountSymbol, valueSymbol;
+            if (tradeType === 'BUY') {
+                amount = this.isInverted ? amount1Out : amount0Out;
+                value = this.isInverted ? amount0In : amount1In;
+                amountSymbol = this.isInverted ? symbol1 : symbol0;
+                valueSymbol = this.isInverted ? symbol0 : symbol1;
+            } else { // SELL
+                amount = this.isInverted ? amount1In : amount0In;
+                value = this.isInverted ? amount0Out : amount1Out;
+                amountSymbol = this.isInverted ? symbol0 : symbol1;
+                valueSymbol = this.isInverted ? symbol1 : symbol0;
+            }
+
+            const signer = trade.signer || 'N/A';
+            const signerShort = signer.length > 12 ? `${signer.slice(0, 6)}...${signer.slice(-4)}` : signer;
+
+            tradeDiv.innerHTML = `
+                <div class="trade-details">
+                    <span class="${tradeType.toLowerCase()}">${tradeType} ${amount.toFixed(4)} ${amountSymbol}</span>
+                    <span>Price: ${price.toFixed(6)} ${this.isInverted ? symbol0 : symbol1}/${this.isInverted ? symbol1 : symbol0}</span>
+                </div>
+                <div class="trade-details">
+                    <span>Value: ${value.toFixed(4)} ${valueSymbol}</span>
+                    <span>Signer: ${signerShort}</span>
+                </div>
+                <div class="trade-meta">
+                    <span>${formattedTime}</span>
+                </div>
+            `;
+            this.modalTradesContent.appendChild(tradeDiv);
+        });
     }
 
     async loadPairsAndInitialize() {
@@ -511,7 +644,7 @@ class ChartController {
         // this.toggleContainer.style.zIndex = '5'; // Removed
         
         const toggleButton = document.createElement('button');
-        toggleButton.textContent = 'Invert Pair';
+        toggleButton.textContent = 'Invert';
         toggleButton.className = 'toggle-button';
         toggleButton.style.padding = '8px 12px';
         toggleButton.style.backgroundColor = '#f0f0f0';
@@ -525,7 +658,7 @@ class ChartController {
         // Add event listener
         toggleButton.addEventListener('click', () => {
             this.isInverted = !this.isInverted;
-            toggleButton.textContent = this.isInverted ? 'Show Original Pair' : 'Invert Pair';
+            toggleButton.textContent = this.isInverted ? 'Show Original Pair' : 'Invert';
             this.updateChartTitle();
             this.updateQueryParams();
             this.updateTradeHistory();
