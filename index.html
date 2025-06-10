@@ -226,40 +226,69 @@
 
         #trade-history {
             height: 30vh;
-            overflow-y: auto;
+            overflow: hidden;
             background-color: var(--background-color);
-            padding: 20px;
+            padding: 0;
+            position: relative;
+        }
+
+        .trade-history-wrapper {
+            height: 100%;
+            overflow-y: auto;
+            padding: 0;
+            background-color: var(--background-color);
         }
 
         .trade-history-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
+            background-color: var(--background-color);
+            table-layout: fixed;
+        }
+
+        .trade-history-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--background-color);
         }
 
         .trade-history-table th {
             background-color: var(--secondary-accent);
-            /* Table header distinct from main bg */
             color: var(--header-text-color);
-            /* Use header text color for TH text */
+            font-weight: 500;
             padding: 12px;
             text-align: left;
-            font-weight: 500;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .trade-history-table td {
-            padding: 8px 12px;
             border-bottom: 1px solid var(--secondary-accent);
         }
 
-        .trade-history-table tr:hover {
-            background-color: var(--secondary-accent);
-            /* Use secondary for hover */
+        .trade-history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--secondary-accent);
         }
 
+        /* Column widths */
+        .trade-history-table th:nth-child(1),
+        .trade-history-table td:nth-child(1) { width: 20%; } /* Time */
+        .trade-history-table th:nth-child(2),
+        .trade-history-table td:nth-child(2) { width: 10%; } /* Type */
+        .trade-history-table th:nth-child(3),
+        .trade-history-table td:nth-child(3) { width: 15%; } /* Price */
+        .trade-history-table th:nth-child(4),
+        .trade-history-table td:nth-child(4) { width: 20%; } /* Amount */
+        .trade-history-table th:nth-child(5),
+        .trade-history-table td:nth-child(5) { width: 20%; } /* Value */
+        .trade-history-table th:nth-child(6),
+        .trade-history-table td:nth-child(6) { width: 15%; } /* Maker */
+
+        /* Add hover effect for rows */
+        .trade-history-table tbody tr:hover {
+            background-color: var(--secondary-accent);
+        }
+
+        /* Style for buy/sell rows */
         .buy-row td {
             color: var(--buy-color);
         }
@@ -341,28 +370,10 @@
 
         #header-bar {
             display: flex;
-            flex-wrap: wrap;
+            justify-content: space-between;
             align-items: center;
-            justify-content: flex-start;
-            padding: 10px;
-            background-color: var(--header-background);
-            border-bottom: 1px solid var(--secondary-accent);
-            gap: 20px;
-        }
-
-        .header-icon {
-            /* For the settings gear icon */
-            font-size: 24px;
-            color: var(--text-color);
-            cursor: pointer;
-            margin-left: auto;
-            padding: 5px;
-            display: flex;
-            align-items: center;
-        }
-
-        .header-icon:hover {
-            color: var(--primary-accent);
+            padding: 10px 20px;
+            width: 100%;
         }
 
         /* Settings Modal Styles */
@@ -787,32 +798,271 @@
             text-decoration: underline;
             opacity: 0.8;
         }
+
+        /* Add a container for the table with proper overflow handling */
+        #trade-history {
+            height: 30vh;
+            overflow: hidden;
+            background-color: var(--background-color);
+            padding: 0;
+            position: relative;
+        }
+
+        /* Add a wrapper for the table with proper padding */
+        .trade-history-wrapper {
+            height: 100%;
+            overflow-y: auto;
+            padding: 0;
+            background-color: var(--background-color);
+        }
+
+        /* Add header background that extends full width */
+        .trade-history-header {
+            background-color: var(--secondary-accent);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+
+        /* Add icon styles */
+        .maker-link {
+            display: inline-flex;
+            align-items: center;
+            color: var(--text-color);
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .maker-link:hover {
+            opacity: 1;
+        }
+
+        .tx-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Burger menu styles */
+        .burger-menu {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-left: auto;
+            z-index: 1001;
+        }
+
+        .burger-menu span {
+            width: 30px;
+            height: 3px;
+            background: var(--text-color);
+            border-radius: 3px;
+        }
+
+        /* Navigation modal */
+        .nav-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .nav-modal.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .nav-modal-content {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background: var(--background-color);
+            padding: 20px;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 1px solid var(--secondary-accent);
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-modal.active .nav-modal-content {
+            transform: translateX(0);
+        }
+
+        /* Nav links styles */
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--secondary-accent);
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover {
+            background-color: var(--secondary-accent);
+        }
+
+        .nav-links svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .telegram-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .telegram-link svg {
+            fill: currentColor;
+            stroke: none;
+        }
+
+        .theme-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            color: var(--text-color);
+        }
+
+        .theme-selector-container svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #theme-select {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--input-border-color);
+            background-color: var(--input-background);
+            color: var(--input-text-color);
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #theme-select:hover {
+            border-color: var(--input-focus-border-color);
+        }
+
+        #theme-select:focus {
+            outline: none;
+            border-color: var(--input-focus-border-color);
+            box-shadow: 0 0 0 2px var(--input-focus-shadow-color);
+        }
+
+        /* Header styles */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 5px;
+            background-color: var(--background-color);
+            border-bottom: 1px solid var(--secondary-accent);
+        }
+
+        .header-content {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Nav links animation */
+        .nav-links a,
+        .theme-selector-container {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.3s ease,
+                        transform 0.3s ease;
+        }
+
+        .nav-modal.active .nav-links a,
+        .nav-modal.active .theme-selector-container {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Add delay for each nav item */
+        .nav-links a:nth-child(1) { transition-delay: 0.1s; }
+        .nav-links a:nth-child(2) { transition-delay: 0.2s; }
+        .nav-links a:nth-child(3) { transition-delay: 0.3s; }
+        .theme-selector-container { transition-delay: 0.4s; }
     </style>
 </head>
 
 <body>
-    <div id="header-bar">
-        <span id="settings-gear-icon" class="header-icon">&#9881;</span>
+    <div class="header">
+        <div class="header-content">
+            <div id="header-bar">
+                <button id="burger-menu" class="burger-menu" aria-label="Open navigation menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
     </div>
     <div id="chart-container">
         <div id="loading">Loading...</div>
     <div id="error"></div>
     </div>
     <div id="trade-history">
-        <table class="trade-history-table">
-            <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Type</th>
-                    <th>Price</th>
-                    <th>Amount</th>
-                    <th>Value</th>
-                    <th>Address</th>
-                </tr>
-            </thead>
-            <tbody id="trade-history-body">
-            </tbody>
-        </table>
+        <div class="trade-history-wrapper">
+            <table class="trade-history-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Amount</th>
+                        <th>Value</th>
+                        <th>Maker</th>
+                    </tr>
+                </thead>
+                <tbody id="trade-history-body">
+                </tbody>
+            </table>
+        </div>
     </div>
     <div id="trades-footer">
         <span>Trades</span>
@@ -821,21 +1071,52 @@
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart.js"></script>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Settings</h2>
-            <div id="theme-selector-container">
-                <label for="theme-select">Theme:</label>
-                <select id="theme-select">
-                    <option value="theme-dark-default">Dark Default</option>
-                    <option value="theme-light">Light Mode</option>
-                    <option value="theme-ocean-blue">Ocean Blue</option>
-                    <option value="theme-forest-green">Forest Green</option>
-                    <option value="theme-royal-purple">Royal Purple</option>
-                </select>
-            </div>
+    <!-- Navigation modal -->
+    <div id="nav-modal" class="nav-modal">
+        <div class="nav-modal-content">
+            <nav class="nav-links">
+                <a href="https://xian.org" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    xian.org
+                </a>
+                <a href="https://snakexchange.org" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    snakexchange.org
+                </a>
+                <a href="https://t.me/xian_network" target="_blank" rel="noopener noreferrer" class="telegram-link">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                    </svg>
+                    XIAN Community
+                </a>
+                <div class="theme-selector-container">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <select id="theme-select">
+                        <option value="theme-dark-default">Dark Default</option>
+                        <option value="theme-light">Light Mode</option>
+                        <option value="theme-ocean-blue">Ocean Blue</option>
+                        <option value="theme-forest-green">Forest Green</option>
+                        <option value="theme-royal-purple">Royal Purple</option>
+                    </select>
+                </div>
+            </nav>
         </div>
     </div>
 
@@ -849,6 +1130,26 @@
             <!-- Trades will be populated here by JavaScript -->
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const burgerMenu = document.getElementById('burger-menu');
+            const navModal = document.getElementById('nav-modal');
+
+            burgerMenu.addEventListener('click', function() {
+                burgerMenu.classList.toggle('active');
+                navModal.classList.toggle('active');
+            });
+
+            // Close modal when clicking outside
+            navModal.addEventListener('click', function(e) {
+                if (e.target === navModal) {
+                    burgerMenu.classList.remove('active');
+                    navModal.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html> 

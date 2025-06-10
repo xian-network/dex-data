@@ -121,6 +121,16 @@ class ChartController {
 
         const sortedTrades = [...this.rawTrades].sort((a, b) => b.timestamp - a.timestamp);
 
+        // Debug: Log the first trade's data structure
+        if (sortedTrades.length > 0) {
+            console.log('Trade data structure:', {
+                indexed: sortedTrades[0].indexed,
+                data: sortedTrades[0].data,
+                timestamp: sortedTrades[0].timestamp,
+                signer: sortedTrades[0].signer
+            });
+        }
+
         const token0 = this.tokens.get(this.currentPair.token0);
         const token1 = this.tokens.get(this.currentPair.token1);
         const symbol0 = token0?.symbol || this.currentPair.token0;
@@ -569,7 +579,7 @@ class ChartController {
         // Get header bar and set its styles
         const headerBar = document.getElementById('header-bar');
         headerBar.style.display = 'flex';
-        headerBar.style.flexDirection = 'row';
+        headerBar.style.flexDirection = 'row-reverse';
         headerBar.style.alignItems = 'center';
         headerBar.style.justifyContent = 'flex-start';
         headerBar.style.gap = '10px';
@@ -882,6 +892,7 @@ class ChartController {
                             dataIndexed
                             data
                             created
+                            txHash
                         }
                     }
                 }
@@ -898,16 +909,25 @@ class ChartController {
             });
 
             const data = await response.json();
-            console.log(`Received ${data.data?.allEvents?.edges?.length || 0} swap events`);
             
             if (!data.data?.allEvents?.edges) {
                 console.error('Unexpected API response structure:', data);
                 return { candles: [], volumes: [] };
             }
 
-            // Log a sample timestamp to debug
+            // Log the first trade's complete data structure
             if (data.data.allEvents.edges.length > 0) {
-                console.log('Sample created timestamp:', data.data.allEvents.edges[0].node.created);
+                const firstTrade = data.data.allEvents.edges[0].node;
+                console.log('Raw trade data structure:', {
+                    caller: firstTrade.caller,
+                    signer: firstTrade.signer,
+                    dataIndexed: typeof firstTrade.dataIndexed === 'string' ? 
+                        JSON.parse(firstTrade.dataIndexed) : firstTrade.dataIndexed,
+                    data: typeof firstTrade.data === 'string' ? 
+                        JSON.parse(firstTrade.data) : firstTrade.data,
+                    created: firstTrade.created,
+                    txHash: firstTrade.txHash
+                });
             }
 
             // Store raw trades for history display
@@ -920,17 +940,8 @@ class ChartController {
                     ? JSON.parse(node.data) 
                     : node.data;
                 
-                // Store both the original timestamp string and the Date object
                 const timestampStr = node.created;
-                
-                // Explicitly parse UTC time to avoid timezone issues
-                // The created timestamp is in ISO format like "2025-03-31T12:17:47.361237"
-                const timestamp = new Date(timestampStr + 'Z'); // Ensure treating as UTC by appending Z
-                
-                // Debug timestamps
-                // console.log('Raw timestamp:', timestampStr);
-                // console.log('Parsed timestamp:', timestamp.toISOString());
-                // console.log('UTC Hours:', timestamp.getUTCHours());
+                const timestamp = new Date(timestampStr + 'Z'); // Ensure treating as UTC
                 
                 return {
                     timestamp: timestamp,
@@ -938,21 +949,10 @@ class ChartController {
                     indexed: dataIndexed,
                     data: swapData,
                     caller: node.caller,
-                    signer: node.signer
+                    signer: node.signer,
+                    txHash: node.txHash
                 };
             });
-            
-            console.log(this.rawTrades)
-            // For debugging, log the first trade's timestamp information
-            if (this.rawTrades.length > 0) {
-                const sample = this.rawTrades[0];
-                console.log('First trade timestamp details:', {
-                    original: sample.timestampStr,
-                    parsed: sample.timestamp.toISOString(),
-                    utcHours: sample.timestamp.getUTCHours(),
-                    utcMinutes: sample.timestamp.getUTCMinutes()
-                });
-            }
             
             if (this.rawTrades.length === 0) {
                 console.warn('No trades found for this pair');
@@ -962,11 +962,6 @@ class ChartController {
             // Sort for chart display (oldest first)
             const tradeEvents = [...this.rawTrades]
                 .sort((a, b) => a.timestamp - b.timestamp);
-            
-            console.log(`Processing ${tradeEvents.length} trades for chart`);
-            
-            // Display trade history
-            this.updateTradeHistory();
             
             // Create chart data from trades
             const chartData = this.processSwapEvents(tradeEvents);
@@ -1060,21 +1055,35 @@ class ChartController {
                     value = this.isInverted ? amount0Out : amount1Out;
                 }
                 
-                // Get signer address
-                const signer = trade.signer || '';
+                // Get maker address and transaction hash
+                const maker = trade.signer || '';
+                const makerShort = maker.length > 8 ? `${maker.slice(0, 4)}...${maker.slice(-4)}` : maker;
                 
                 // Add appropriate CSS class
                 row.className = tradeType.toLowerCase() === 'buy' ? 'buy-row' : 'sell-row';
                 
-                // Format the row content, now with signer column
+                // Format the row content with transaction icon and link
                 row.innerHTML = `
                     <td class="trade-time" title="${time.toISOString()}">${formattedDate} ${formattedTime}</td>
                     <td class="trade-type">${tradeType}</td>
                     <td class="trade-price">${price.toFixed(6)}</td>
                     <td class="trade-amount">${amount.toFixed(4)} ${this.isInverted ? symbol1 : symbol0}</td>
                     <td class="trade-value">${value.toFixed(4)} ${this.isInverted ? symbol0 : symbol1}</td>
-                    <td class="trade-signer">
-                        ${signer ? `<a href="https://explorer.xian.org/addresses/${signer}" target="_blank" rel="noopener noreferrer">${signer.slice(0, 8)}...${signer.slice(-4)}</a>` : ''}
+                    <td class="trade-maker">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${makerShort}</span>
+                            ${trade.txHash ? `
+                                <a href="https://explorer.xian.org/tx/${trade.txHash}" 
+                                   class="maker-link" 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   title="View transaction">
+                                    <svg class="tx-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                </a>
+                            ` : ''}
+                        </div>
                     </td>
                 `;
                 
@@ -1091,18 +1100,8 @@ class ChartController {
         // Pre-sort trades by timestamp once
         tradeEvents.sort((a, b) => a.timestamp - b.timestamp);
         
-        // Get time boundaries
-        const startTime = tradeEvents[0].timestamp;
-        const endTime = new Date();
-        
         // Calculate interval in milliseconds
         const intervalMs = this.currentTimeframe.minutes * 60 * 1000;
-        
-        // Round start time down to interval boundary
-        const startInterval = new Date(Math.floor(startTime.getTime() / intervalMs) * intervalMs);
-        
-        // Round end time up to interval boundary
-        const endInterval = new Date(Math.ceil(endTime.getTime() / intervalMs) * intervalMs);
         
         // Create a map for quick lookup of trades in each interval
         const tradesByInterval = new Map();
@@ -1118,6 +1117,9 @@ class ChartController {
             tradesByInterval.get(key).push(trade);
         });
         
+        // Get all interval timestamps and sort them
+        const intervalTimestamps = Array.from(tradesByInterval.keys()).sort((a, b) => a - b);
+        
         const candles = [];
         const volumes = [];
         let previousClose = null;
@@ -1129,8 +1131,8 @@ class ChartController {
         const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80';
         const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80';
         
-        // Process each interval
-        for (let time = startInterval.getTime(); time <= endInterval.getTime(); time += intervalMs) {
+        // Process all intervals to maintain full history
+        intervalTimestamps.forEach(time => {
             const trades = tradesByInterval.get(time) || [];
             const timestamp = Math.floor(time / 1000); // Convert to seconds for the chart
             
@@ -1161,32 +1163,34 @@ class ChartController {
                     close,
                     tradeCount: trades.length
                 });
-                    
-                    volumes.push({
-                        time: timestamp,
+                
+                volumes.push({
+                    time: timestamp,
                     value: volume,
                     color: close >= open ? volumeUpColor : volumeDownColor
                 });
                 
                 previousClose = close;
-            } else if (previousClose !== null) {
+            } else {
                 // Empty interval with previous close
-                candles.push({
+                if (previousClose !== null) {
+                    candles.push({
                         time: timestamp,
                         open: previousClose,
                         high: previousClose,
                         low: previousClose,
                         close: previousClose,
                         tradeCount: 0
-                });
+                    });
                     
                     volumes.push({
                         time: timestamp,
                         value: 0,
                         color: '#80808040'
                     });
+                }
             }
-        }
+        });
         
         return { candles, volumes };
     }
@@ -1334,13 +1338,27 @@ class ChartController {
                 this.volumeByTime.set(vol.time, vol.value);
             });
             
-            // First fit all content
-            this.chart.timeScale().fitContent();
+            // Set visible range to last 50 bars
+            if (chartData.candles.length > 0) {
+                const timeScale = this.chart.timeScale();
+                const lastIndex = chartData.candles.length - 1;
+                const startIndex = Math.max(0, lastIndex - 49); // Show last 50 bars
+                
+                const visibleRange = {
+                    from: chartData.candles[startIndex].time,
+                    to: chartData.candles[lastIndex].time
+                };
+                
+                timeScale.setVisibleRange(visibleRange);
+            }
             
-            // Then ensure price scale is properly fitted
+            // Ensure price scale is properly fitted
             this.chart.priceScale('right').applyOptions({
                 autoScale: true
             });
+            
+            // Update trade history
+            this.updateTradeHistory();
             
             loading.style.display = 'none';
         } catch (err) {
@@ -1641,40 +1659,7 @@ class ChartController {
     }
 
     initModalControls() {
-        const settingsGearIcon = document.getElementById('settings-gear-icon');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeButton = settingsModal ? settingsModal.querySelector('.close-button') : null;
-
-        if (!settingsGearIcon) {
-            console.error('Settings gear icon #settings-gear-icon not found.');
-            return;
-        }
-        if (!settingsModal) {
-            console.error('Settings modal #settings-modal not found.');
-            return;
-        }
-        if (!closeButton) {
-            console.error('Close button .close-button within modal not found.');
-            return;
-        }
-
-        settingsGearIcon.addEventListener('click', () => {
-            const isDisplayed = settingsModal.style.display === 'block';
-            settingsModal.style.display = isDisplayed ? 'none' : 'block';
-            console.log(`Settings modal toggled ${isDisplayed ? 'off' : 'on'}`);
-        });
-
-        closeButton.addEventListener('click', () => {
-            settingsModal.style.display = 'none';
-            console.log('Settings modal closed by button.');
-        });
-
-        window.addEventListener('click', (event) => {
-            if (event.target === settingsModal) { // Clicked on the modal backdrop
-                settingsModal.style.display = 'none';
-                console.log('Settings modal closed by clicking outside.');
-            }
-        });
+        // No longer need to initialize settings modal controls
         console.log('Modal controls initialized.');
     }
 }
