@@ -12,6 +12,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'VCR MONO';
+            src: url('VCR_MONO.ttf') format('truetype');
+        }
+
         :root {
             --background-color: #1a1a1a;
             --text-color: #d4d4d4;
@@ -51,6 +56,7 @@
             /* Matches primary accent */
             --link-color: #00ffff;
             /* For future links if any, or for the signer address */
+            --container-width: 270px; /* Reduced from 300px by 10% */
         }
 
         /* Theme Overrides */
@@ -209,7 +215,7 @@
         body {
             background-color: var(--background-color);
             color: var(--text-color);
-            font-family: 'Inter', sans-serif;
+            font-family: 'VCR MONO', monospace;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -369,11 +375,16 @@
         }
 
         #header-bar {
+            background-color: transparent;
             display: flex;
-            justify-content: space-between;
+            flex-direction: row-reverse;
             align-items: center;
-            padding: 10px 20px;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 4px;
             width: 100%;
+            min-height: 50px;
+            flex-wrap: nowrap;
         }
 
         /* Settings Modal Styles */
@@ -448,14 +459,9 @@
         /* Adjustments for the containers within the header bar if needed */
         /* The .selector-container (created by JS) holds pair and timeframe selectors */
         .selector-container {
-            /* Existing JS styles: backgroundColor, padding, borderRadius, display, gap, alignItems */
-            /* Override specific ones if needed, or ensure JS uses CSS variables */
-            background-color: var(--header-background) !important;
-            /* Match header */
+            background-color: transparent !important;
             padding: 8px !important;
-            /* JS sets padding */
             border-radius: 4px !important;
-            /* JS sets border-radius */
         }
 
         .selector-container label {
@@ -894,7 +900,7 @@
             width: 300px;
             height: 100%;
             background: var(--background-color);
-            padding: 20px;
+            padding: 60px 20px 20px; /* Increased top padding to make room for close icon */
             transform: translateX(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-left: 1px solid var(--secondary-accent);
@@ -998,8 +1004,14 @@
             display: flex;
             align-items: center;
             padding: 10px 5px;
-            background-color: var(--background-color);
+            background-color: var(--header-background);
             border-bottom: 1px solid var(--secondary-accent);
+            height: 60px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 99;
         }
 
         .header-content {
@@ -1027,6 +1039,245 @@
         .nav-links a:nth-child(2) { transition-delay: 0.2s; }
         .nav-links a:nth-child(3) { transition-delay: 0.3s; }
         .theme-selector-container { transition-delay: 0.4s; }
+
+        /* Pairs Panel Styles */
+        .pairs-panel {
+            position: fixed;
+            left: 0;
+            top: 60px; /* Match header height */
+            bottom: 0;
+            width: var(--container-width);
+            background: var(--background-color);
+            border-right: 1px solid var(--secondary-accent);
+            display: flex;
+            flex-direction: column;
+            z-index: 98;
+            font-size: 11px; /* Reduced text size by ~30% from default 16px */
+        }
+
+        .pairs-header {
+            display: flex;
+            padding: 10px; /* Reduced from 15px */
+            background: var(--header-background);
+            border-bottom: 1px solid var(--secondary-accent);
+            font-weight: 500;
+            color: var(--header-text-color);
+            font-size: 11px; /* Ensure header text matches */
+        }
+
+        .pairs-column {
+            flex: 1;
+            text-align: left;
+        }
+
+        .pairs-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .pair-item {
+            display: flex;
+            padding: 8px 10px; /* Reduced from 12px 15px */
+            border-bottom: 1px solid var(--secondary-accent);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 11px; /* Ensure consistent text size */
+        }
+
+        .pair-item:hover {
+            background: var(--secondary-accent);
+        }
+
+        .pair-item > div {
+            flex: 1;
+        }
+
+        .pair-change.positive {
+            color: var(--buy-color);
+        }
+
+        .pair-change.negative {
+            color: var(--sell-color);
+        }
+
+        /* Adjust main content to account for fixed header */
+        #chart-container {
+            margin-top: 60px; /* Add margin to account for fixed header */
+            margin-left: var(--container-width);
+            width: calc(100% - var(--container-width));
+            height: calc(70vh - 120px);
+        }
+
+        #trade-history {
+            margin-left: var(--container-width);
+            width: calc(95% - var(--container-width)); /* Reduced from 100% to 95% */
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .pairs-panel {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                top: 60px;
+            }
+
+            .pairs-panel.active {
+                transform: translateX(0);
+            }
+
+            #chart-container,
+            #trade-history {
+                margin-left: 0;
+                width: 95%; /* Reduced from 100% to 95% */
+                margin-top: 60px;
+                margin-right: auto;
+                margin-left: auto;
+            }
+        }
+
+        /* Add pair button styles */
+        .pair-button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--secondary-accent);
+            background-color: var(--input-background);
+            color: var(--text-color);
+            cursor: pointer;
+            min-width: 120px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'VCR MONO', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .pair-button:hover {
+            border-color: var(--primary-accent);
+            background-color: var(--secondary-accent);
+        }
+
+        @media (max-width: 768px) {
+            .pair-button {
+                min-width: 100px;
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+
+            .pairs-panel {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                top: 60px;
+                z-index: 98;
+            }
+
+            .pairs-panel.active {
+                transform: translateX(0);
+            }
+
+            #chart-container,
+            #trade-history {
+                margin-left: 0;
+                width: 95%;
+                margin-top: 60px;
+                margin-right: auto;
+                margin-left: auto;
+            }
+        }
+
+        /* Remove pairs toggle styles since we're not using it anymore */
+        .pairs-toggle {
+            display: none;
+        }
+
+        /* Selected pair highlighting */
+        .pair-item.selected {
+            background-color: var(--primary-accent);
+            color: var(--background-color);
+        }
+
+        .pair-item.selected .pair-change {
+            color: var(--background-color);
+        }
+
+        /* Update all selects and inputs to use VCR MONO */
+        select,
+        input,
+        button {
+            font-family: 'VCR MONO', monospace;
+        }
+
+        /* Make sure the pair items maintain proper alignment with new font */
+        .pair-item {
+            display: flex;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--secondary-accent);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 11px;
+            align-items: center;
+        }
+
+        .pair-item > div {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Ensure text remains visible during webfont load */
+        .pairs-panel {
+            font-display: swap;
+        }
+
+        /* Add close icon styles */
+        .close-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            transition: color 0.2s ease;
+            z-index: 1002;
+        }
+
+        .close-icon:hover {
+            color: var(--primary-accent);
+        }
+
+        .close-icon::before,
+        .close-icon::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 2px;
+            background-color: currentColor;
+            transform-origin: center;
+        }
+
+        .close-icon::before {
+            transform: rotate(45deg);
+        }
+
+        .close-icon::after {
+            transform: rotate(-45deg);
+        }
+
+        .trades-list-container {
+            width: 95%; /* Reduced from 100% */
+            margin: 0 auto;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 4px;
+            background-color: var(--modal-background);
+        }
     </style>
 </head>
 
@@ -1042,10 +1293,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Add pairs panel -->
+    <div class="pairs-panel">
+        <div class="pairs-header">
+            <div class="pairs-column">Pair</div>
+            <div class="pairs-column">Volume</div>
+            <div class="pairs-column">24h Change</div>
+        </div>
+        <div class="pairs-list" id="pairs-list">
+            <!-- Pairs will be populated here by JavaScript -->
+        </div>
+    </div>
+
     <div id="chart-container">
         <div id="loading">Loading...</div>
-    <div id="error"></div>
+        <div id="error"></div>
     </div>
+
     <div id="trade-history">
         <div class="trade-history-wrapper">
             <table class="trade-history-table">
@@ -1074,7 +1339,8 @@
     <!-- Navigation modal -->
     <div id="nav-modal" class="nav-modal">
         <div class="nav-modal-content">
-            <nav class="nav-links">
+            <div class="close-icon" id="nav-close"></div>
+            <div class="nav-links">
                 <a href="https://xian.org" target="_blank" rel="noopener noreferrer">
                     <svg viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -1116,7 +1382,7 @@
                         <option value="theme-royal-purple">Royal Purple</option>
                     </select>
                 </div>
-            </nav>
+            </div>
         </div>
     </div>
 
@@ -1135,19 +1401,45 @@
         document.addEventListener('DOMContentLoaded', function() {
             const burgerMenu = document.getElementById('burger-menu');
             const navModal = document.getElementById('nav-modal');
+            const navClose = document.getElementById('nav-close');
+            const pairsToggle = document.getElementById('pairs-toggle');
+            const navContent = navModal.querySelector('.nav-modal-content');
 
+            // Burger menu click handler
             burgerMenu.addEventListener('click', function() {
-                burgerMenu.classList.toggle('active');
-                navModal.classList.toggle('active');
+                navModal.classList.add('active');
+                if (navContent) {
+                    navContent.style.transform = 'translateX(0)';
+                }
+            });
+
+            // Close button click handler
+            navClose.addEventListener('click', function() {
+                navModal.classList.remove('active');
+                if (navContent) {
+                    navContent.style.transform = 'translateX(100%)';
+                }
             });
 
             // Close modal when clicking outside
             navModal.addEventListener('click', function(e) {
                 if (e.target === navModal) {
-                    burgerMenu.classList.remove('active');
                     navModal.classList.remove('active');
+                    if (navContent) {
+                        navContent.style.transform = 'translateX(100%)';
+                    }
                 }
             });
+
+            // Add pairs panel toggle
+            if (pairsToggle) {
+                pairsToggle.addEventListener('click', function() {
+                    const chartController = window.chartController;
+                    if (chartController) {
+                        chartController.togglePairsPanel();
+                    }
+                });
+            }
         });
     </script>
 </body>

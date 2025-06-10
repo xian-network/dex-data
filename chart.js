@@ -265,9 +265,18 @@ class ChartController {
     
     async fetchAllPairs() {
         console.log('Fetching all trading pairs...');
+        
+        // Get current time and 24h ago in ISO format
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
+        const iso_string_24h_ago = twentyFourHoursAgo.toISOString();
+        
+        // First get all pairs and their latest swaps in a single query
         const query = `
-            query GetBalanceQuery {
-                allEvents(condition: {contract: "con_pairs", event: "PairCreated"}) {
+            query GetPairsAndPrices {
+                pairs: allEvents(
+                    condition: {contract: "con_pairs", event: "PairCreated"}
+                ) {
                     edges {
                         node {
                             dataIndexed
@@ -275,10 +284,36 @@ class ChartController {
                         }
                     }
                 }
+                currentPrices: allEvents(
+                    condition: {contract: "con_pairs", event: "Swap"}
+                    orderBy: CREATED_DESC
+                ) {
+                    edges {
+                        node {
+                            dataIndexed
+                            data
+                            created
+                        }
+                    }
+                }
+                historicalPrices: allEvents(
+                    condition: {contract: "con_pairs", event: "Swap"}
+                    filter: {created: {greaterThan: "${iso_string_24h_ago}"}}
+                    orderBy: CREATED_ASC
+                ) {
+                    edges {
+                        node {
+                            dataIndexed
+                            data
+                            created
+                        }
+                    }
+                }
             }
         `;
         
         try {
+            // Fetch all data in a single query
             const response = await fetch(this.GRAPHQL_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -287,16 +322,19 @@ class ChartController {
                 body: JSON.stringify({ query })
             });
             
-            const data = await response.json();
-            console.log('Pairs API response:', data);
-            
-            if (!data.data?.allEvents?.edges) {
-                console.error('Unexpected API response structure:', data);
-                return;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            // Process pairs and fetch token info
-            this.pairs = data.data.allEvents.edges.map(edge => {
+            const data = await response.json();
+            console.log('API response:', data);
+            
+            if (!data.data?.pairs?.edges) {
+                throw new Error('Unexpected API response structure: missing pairs data');
+            }
+            
+            // Process pairs first
+            this.pairs = data.data.pairs.edges.map(edge => {
                 const dataIndexed = typeof edge.node.dataIndexed === 'string' 
                     ? JSON.parse(edge.node.dataIndexed) 
                     : edge.node.dataIndexed;
@@ -308,11 +346,118 @@ class ChartController {
                 return {
                     id: pairData.pair,
                     token0: dataIndexed.token0,
-                    token1: dataIndexed.token1
+                    token1: dataIndexed.token1,
+                    volume24h: 0,
+                    currentPrice: null,
+                    priceChange: null
                 };
             });
+
+            // Create maps for quick lookup
+            const pairsMap = new Map(this.pairs.map(pair => [pair.id, pair]));
             
-            console.log('Processed pairs:', this.pairs);
+            // Process current prices
+            if (data.data.currentPrices?.edges) {
+                const currentPrices = new Map();
+                
+                for (const edge of data.data.currentPrices.edges) {
+                    const dataIndexed = typeof edge.node.dataIndexed === 'string'
+                        ? JSON.parse(edge.node.dataIndexed)
+                        : edge.node.dataIndexed;
+                    const swapData = typeof edge.node.data === 'string'
+                        ? JSON.parse(edge.node.data)
+                        : edge.node.data;
+                    
+                    const pairId = dataIndexed.pair;
+                    if (!currentPrices.has(pairId)) {
+                        const price = this.calculatePrice(dataIndexed, swapData);
+                        if (price !== null) {
+                            currentPrices.set(pairId, price);
+                        }
+                    }
+                }
+                
+                // Update pairs with current prices
+                for (const [pairId, price] of currentPrices) {
+                    const pair = pairsMap.get(pairId);
+                    if (pair) {
+                        pair.currentPrice = price;
+                    }
+                }
+            }
+            
+            // Process historical prices and calculate price changes
+            if (data.data.historicalPrices?.edges) {
+                const historicalPrices = new Map();
+                
+                for (const edge of data.data.historicalPrices.edges) {
+                    const dataIndexed = typeof edge.node.dataIndexed === 'string'
+                        ? JSON.parse(edge.node.dataIndexed)
+                        : edge.node.dataIndexed;
+                    const swapData = typeof edge.node.data === 'string'
+                        ? JSON.parse(edge.node.data)
+                        : edge.node.data;
+                    
+                    const pairId = dataIndexed.pair;
+                    if (!historicalPrices.has(pairId)) {
+                        const price = this.calculatePrice(dataIndexed, swapData);
+                        if (price !== null && !isNaN(price) && price > 0) {
+                            historicalPrices.set(pairId, price);
+                        }
+                    }
+                }
+                
+                // Calculate price changes
+                for (const pair of this.pairs) {
+                    const currentPrice = pair.currentPrice;
+                    const historicalPrice = historicalPrices.get(pair.id);
+                    
+                    if (currentPrice !== null && !isNaN(currentPrice) && 
+                        historicalPrice !== null && !isNaN(historicalPrice) && 
+                        historicalPrice > 0) {
+                        pair.priceChange = ((currentPrice - historicalPrice) / historicalPrice) * 100;
+                    } else {
+                        pair.priceChange = 0;
+                    }
+                }
+            }
+            
+            // Fetch 24h volume for each pair
+            const volumePromises = this.pairs.map(async pair => {
+                try {
+                    // Make two requests, one for each token in the pair
+                    const [volume0Res, volume1Res] = await Promise.all([
+                        fetch(`https://xian-api.poc.workers.dev/pairs/${pair.id}/volume24h?token=0`, {
+                            headers: { 'accept': 'application/json' }
+                        }),
+                        fetch(`https://xian-api.poc.workers.dev/pairs/${pair.id}/volume24h?token=1`, {
+                            headers: { 'accept': 'application/json' }
+                        })
+                    ]);
+
+                    if (!volume0Res.ok || !volume1Res.ok) {
+                        console.error(`Failed to fetch volume for pair ${pair.id}`);
+                        return;
+                    }
+
+                    const [volume0Data, volume1Data] = await Promise.all([
+                        volume0Res.json(),
+                        volume1Res.json()
+                    ]);
+
+                    // Use token1's volume (quote token) for display
+                    if (volume1Data && typeof volume1Data.volume24h === 'number') {
+                        pair.volume24h = volume1Data.volume24h;
+                    }
+                } catch (error) {
+                    console.error(`Error fetching volume for pair ${pair.id}:`, error);
+                }
+            });
+
+            // Wait for all volume requests to complete
+            await Promise.all(volumePromises);
+            
+            console.log('Processed pairs with price changes:', this.pairs);
             
             // Collect unique tokens to fetch metadata
             const uniqueTokens = new Set();
@@ -328,8 +473,13 @@ class ChartController {
             
             // Update pair selector with the loaded pairs
             this.updatePairSelector();
+            
+            // Update pairs panel
+            this.updatePairsPanel();
+            
         } catch (error) {
             console.error('Error fetching pairs:', error);
+            throw error; // Re-throw to be handled by the caller
         }
     }
     
@@ -436,7 +586,7 @@ class ChartController {
         selectorContainer.style.display = 'flex';
         selectorContainer.style.flexDirection = 'row';
         selectorContainer.style.alignItems = 'center';
-        selectorContainer.style.justifyContent = 'space-between'; // Changed to space-between
+        selectorContainer.style.justifyContent = 'space-between';
         selectorContainer.style.gap = '10px';
         selectorContainer.style.flexWrap = 'nowrap';
         selectorContainer.style.width = '100%';
@@ -444,32 +594,47 @@ class ChartController {
         selectorContainer.style.padding = '8px';
         selectorContainer.style.borderRadius = '4px';
         
-        // Left side container for pair, timeframe, and invert
+        // Left side container for pair button, timeframe, and invert
         const leftGroup = document.createElement('div');
         leftGroup.style.display = 'flex';
         leftGroup.style.alignItems = 'center';
         leftGroup.style.gap = '10px';
         leftGroup.style.flexShrink = '0';
         
-        // Pair selector group
-        const pairGroup = document.createElement('div');
-        pairGroup.style.display = 'flex';
-        pairGroup.style.alignItems = 'center';
-        pairGroup.style.gap = '4px';
-        pairGroup.style.flexShrink = '0';
+        // Create pair button instead of select
+        const pairButton = document.createElement('button');
+        pairButton.className = 'pair-button';
+        pairButton.style.padding = '8px 12px';
+        pairButton.style.borderRadius = '4px';
+        pairButton.style.border = '1px solid var(--secondary-accent)';
+        pairButton.style.backgroundColor = 'var(--input-background)';
+        pairButton.style.color = 'var(--text-color)';
+        pairButton.style.cursor = 'pointer';
+        pairButton.style.minWidth = '120px';
+        pairButton.style.textAlign = 'left';
+        pairButton.style.display = 'flex';
+        pairButton.style.alignItems = 'center';
+        pairButton.style.justifyContent = 'space-between';
+        pairButton.style.fontFamily = "'VCR MONO', monospace";
+        pairButton.style.transition = 'all 0.2s ease';
         
-        const pairLabel = document.createElement('label');
-        pairLabel.textContent = 'Pair:';
-        pairLabel.style.fontWeight = '500';
-        pairLabel.style.color = '#00ffff';
-        pairLabel.style.whiteSpace = 'nowrap';
+        // Add chevron icon
+        const chevron = document.createElement('span');
+        chevron.innerHTML = '▼';
+        chevron.style.marginLeft = '8px';
+        chevron.style.fontSize = '12px';
+        chevron.style.opacity = '0.7';
+        pairButton.appendChild(chevron);
         
-        this.pairSelect = document.createElement('select');
-        this.pairSelect.className = 'pair-select';
-        this.pairSelect.style.padding = '4px 8px';
-        this.pairSelect.style.borderRadius = '4px';
-        this.pairSelect.style.border = '1px solid #3a3a3a';
-        this.pairSelect.style.minWidth = '120px';
+        // Store reference to button for updating text
+        this.pairButton = pairButton;
+        
+        // Add click handler for mobile
+        pairButton.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                this.togglePairsPanel();
+            }
+        });
         
         // Timeframe selector group
         const timeframeGroup = document.createElement('div');
@@ -503,20 +668,26 @@ class ChartController {
         invertButton.style.cursor = 'pointer';
         invertButton.style.transition = 'all 0.2s ease';
 
-        // Add hover effect
+        // Add hover effects
+        pairButton.addEventListener('mouseover', () => {
+            pairButton.style.borderColor = 'var(--primary-accent)';
+            pairButton.style.backgroundColor = 'var(--secondary-accent)';
+        });
+        
+        pairButton.addEventListener('mouseout', () => {
+            pairButton.style.borderColor = 'var(--secondary-accent)';
+            pairButton.style.backgroundColor = 'var(--input-background)';
+        });
+
         invertButton.addEventListener('mouseover', () => {
             invertButton.style.backgroundColor = 'var(--secondary-accent)';
         });
+        
         invertButton.addEventListener('mouseout', () => {
             invertButton.style.backgroundColor = '#3a3a3a';
         });
-
-        // Add event listeners
-        this.pairSelect.addEventListener('change', () => {
-            console.log(`Pair changed to: ${this.pairSelect.value}`);
-            this.changePair(this.pairSelect.value);
-        });
         
+        // Add timeframe change handler
         this.timeframeSelect.addEventListener('change', () => {
             const minutes = parseInt(this.timeframeSelect.value);
             this.currentTimeframe = this.timeframes.find(tf => tf.minutes === minutes);
@@ -527,9 +698,7 @@ class ChartController {
 
         // Add invert button click handler
         invertButton.addEventListener('click', async () => {
-            // Get current visible range before inverting
             const visibleRange = this.chart.timeScale().getVisibleRange();
-            
             this.isInverted = !this.isInverted;
             this.updateChartTitle();
             this.updateQueryParams();
@@ -547,7 +716,6 @@ class ChartController {
             
             await this.loadChartData();
             
-            // If we had a visible range, restore it
             if (visibleRange) {
                 this.chart.timeScale().setVisibleRange(visibleRange);
             }
@@ -561,22 +729,14 @@ class ChartController {
             this.timeframeSelect.appendChild(option);
         });
         
-        // Add placeholder option for pair select
-        const placeholderOption = document.createElement('option');
-        placeholderOption.textContent = 'Loading...';
-        placeholderOption.disabled = true;
-        placeholderOption.selected = true;
-        this.pairSelect.appendChild(placeholderOption);
-        
-        // Assemble the components
-        pairGroup.appendChild(pairLabel);
-        pairGroup.appendChild(this.pairSelect);
+        // Set initial pair button text
+        this.updatePairButtonText();
         
         timeframeGroup.appendChild(timeframeLabel);
         timeframeGroup.appendChild(this.timeframeSelect);
         
         // Add all elements to left group
-        leftGroup.appendChild(pairGroup);
+        leftGroup.appendChild(pairButton);
         leftGroup.appendChild(timeframeGroup);
         leftGroup.appendChild(invertButton);
         
@@ -598,50 +758,57 @@ class ChartController {
         headerBar.appendChild(selectorContainer);
         
         console.log('Selectors created');
-
-        // Remove the old toggle container since we've moved the invert button
-        if (this.toggleContainer) {
-            this.toggleContainer.remove();
-            this.toggleContainer = null;
-        }
     }
-    
-    updatePairSelector() {
-        console.log('Updating pair selector with loaded pairs');
+
+    // Add method to update pair button text
+    updatePairButtonText() {
+        if (!this.pairButton) return;
         
-        // Clear existing options
-        this.pairSelect.innerHTML = '';
-        
-        if (this.pairs.length === 0) {
-            const noOption = document.createElement('option');
-            noOption.textContent = 'No pairs available';
-            noOption.disabled = true;
-            noOption.selected = true;
-            this.pairSelect.appendChild(noOption);
+        if (!this.currentPair) {
+            this.pairButton.textContent = 'Loading...';
             return;
         }
         
-        // Add options for each pair
-        this.pairs.forEach(pair => {
-            const token0 = this.tokens.get(pair.token0);
-            const token1 = this.tokens.get(pair.token1);
-            
-            const option = document.createElement('option');
-            option.value = pair.id;
-            option.textContent = `${token0?.symbol || pair.token0} / ${token1?.symbol || pair.token1}`;
-            
-            this.pairSelect.appendChild(option);
-            console.log(`Added pair option: ${option.textContent} (ID: ${pair.id})`);
-        });
+        const token0 = this.tokens.get(this.currentPair.token0);
+        const token1 = this.tokens.get(this.currentPair.token1);
+        const symbol0 = token0?.symbol || this.currentPair.token0;
+        const symbol1 = token1?.symbol || this.currentPair.token1;
         
-        // Select the first option by default
-        if (this.pairSelect.options.length > 0) {
-            this.pairSelect.selectedIndex = 0;
+        const pairText = document.createTextNode(`${symbol0}/${symbol1}`);
+        const chevron = document.createElement('span');
+        chevron.innerHTML = '▼';
+        chevron.style.marginLeft = '8px';
+        chevron.style.fontSize = '12px';
+        chevron.style.opacity = '0.7';
+        
+        this.pairButton.innerHTML = '';
+        this.pairButton.appendChild(pairText);
+        this.pairButton.appendChild(chevron);
+    }
+
+    updatePairSelector() {
+        console.log('Updating pair selector with loaded pairs');
+        
+        if (!this.pairButton) return;
+        
+        if (this.pairs.length === 0) {
+            this.updatePairButtonText(); // Will show "Loading..." text
+            return;
         }
         
-        console.log('Pair selector updated with', this.pairSelect.options.length, 'options');
+        // If we have a current pair, update the button text
+        if (this.currentPair) {
+            this.updatePairButtonText();
+        } else {
+            // If no current pair is set, set it to the first pair
+            this.currentPair = this.pairs[0];
+            this.updatePairButtonText();
+        }
+        
+        console.log('Pair selector updated');
     }
-    
+
+    // Update the changePair method to update button text
     async changePair(pairId) {
         try {
             const selectedPair = this.pairs.find(p => p.id === pairId);
@@ -652,6 +819,9 @@ class ChartController {
             
             this.currentPair = selectedPair;
             console.log(`Switched to pair ${pairId}:`, this.currentPair);
+            
+            // Update button text
+            this.updatePairButtonText();
             
             // Update chart title
             this.updateChartTitle();
@@ -680,7 +850,7 @@ class ChartController {
             error.style.display = 'block';
         }
     }
-    
+
     async initializeChart() {
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
@@ -1435,9 +1605,9 @@ class ChartController {
     }
 
     updateSelectorsFromState() {
-        // Update pair selector
-        if (this.currentPair && this.pairSelect) {
-            this.pairSelect.value = this.currentPair.id;
+        // Update pair button text
+        if (this.currentPair && this.pairButton) {
+            this.updatePairButtonText();
         }
         
         // Update timeframe selector
@@ -1669,9 +1839,100 @@ class ChartController {
         // No longer need to initialize settings modal controls
         console.log('Modal controls initialized.');
     }
+
+    updatePairsPanel() {
+        const pairsList = document.getElementById('pairs-list');
+        if (!pairsList) return;
+        
+        pairsList.innerHTML = '';
+        
+        // Sort pairs by volume
+        const sortedPairs = [...this.pairs]
+            .sort((a, b) => b.volume24h - a.volume24h);
+        
+        sortedPairs.forEach(pair => {
+            const token0 = this.tokens.get(pair.token0);
+            const token1 = this.tokens.get(pair.token1);
+            const symbol0 = token0?.symbol || pair.token0;
+            const symbol1 = token1?.symbol || pair.token1;
+            
+            const pairItem = document.createElement('div');
+            pairItem.className = 'pair-item';
+            
+            // Add selected class if this is the current pair
+            if (this.currentPair && pair.id === this.currentPair.id) {
+                pairItem.classList.add('selected');
+            }
+            
+            const pairName = document.createElement('div');
+            pairName.textContent = `${symbol0}/${symbol1}`;
+            
+            const volume = document.createElement('div');
+            volume.textContent = pair.volume24h > 0 
+                ? this.formatVolume(pair.volume24h)
+                : '---';
+            
+            const priceChange = document.createElement('div');
+            const changeValue = pair.priceChange;
+            
+            // Handle NaN, null, undefined values
+            if (changeValue === null || changeValue === undefined || isNaN(changeValue)) {
+                priceChange.textContent = '0%';
+                priceChange.className = 'pair-change';
+            } else {
+                priceChange.className = `pair-change ${changeValue >= 0 ? 'positive' : 'negative'}`;
+                priceChange.textContent = `${changeValue >= 0 ? '+' : ''}${changeValue.toFixed(2)}%`;
+            }
+            
+            pairItem.appendChild(pairName);
+            pairItem.appendChild(volume);
+            pairItem.appendChild(priceChange);
+            
+            // Add click handler
+            pairItem.addEventListener('click', () => {
+                // Remove selected class from all pairs
+                document.querySelectorAll('.pair-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked pair
+                pairItem.classList.add('selected');
+                
+                this.changePair(pair.id);
+                
+                // On mobile, hide the pairs panel
+                if (window.innerWidth <= 768) {
+                    const pairsPanel = document.querySelector('.pairs-panel');
+                    if (pairsPanel) {
+                        pairsPanel.classList.remove('active');
+                    }
+                }
+            });
+            
+            pairsList.appendChild(pairItem);
+        });
+    }
+
+    formatVolume(volume) {
+        if (volume >= 1000000) {
+            return `${(volume / 1000000).toFixed(2)}M`;
+        } else if (volume >= 1000) {
+            return `${(volume / 1000).toFixed(2)}K`;
+        } else {
+            return volume.toFixed(2);
+        }
+    }
+
+    // Add method to toggle pairs panel on mobile
+    togglePairsPanel() {
+        const pairsPanel = document.querySelector('.pairs-panel');
+        if (pairsPanel) {
+            pairsPanel.classList.toggle('active');
+        }
+    }
 }
 
 // Initialize the chart when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new ChartController();
+    window.chartController = new ChartController();
 }); 
