@@ -527,6 +527,9 @@ class ChartController {
 
         // Add invert button click handler
         invertButton.addEventListener('click', async () => {
+            // Get current visible range before inverting
+            const visibleRange = this.chart.timeScale().getVisibleRange();
+            
             this.isInverted = !this.isInverted;
             this.updateChartTitle();
             this.updateQueryParams();
@@ -543,7 +546,11 @@ class ChartController {
             }
             
             await this.loadChartData();
-            this.chart.timeScale().fitContent();
+            
+            // If we had a visible range, restore it
+            if (visibleRange) {
+                this.chart.timeScale().setVisibleRange(visibleRange);
+            }
         });
         
         // Add timeframe options
