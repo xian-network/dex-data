@@ -17,6 +17,13 @@ class ChartController {
         this.currentPair = null; // Currently selected pair
         this.tokens = new Map(); // Will store token metadata (symbol, logo)
         this.rawTrades = []; // Store raw trade data for the history pane
+        
+        // Live update properties
+        this.lastUpdateTime = null; // Track when we last fetched trades
+        this.lastUpdateTimeString = null; // Store original database timestamp string for precision
+        this.liveUpdateTimer = null; // Timer for live updates
+        this.isLiveUpdating = false; // Flag to prevent overlapping updates
+        
         // Add timeframe configuration
         this.timeframes = [
             { label: '5m', minutes: 5 },
@@ -74,6 +81,15 @@ class ChartController {
                }
            });
         }
+
+        // Handle page visibility change to pause/resume live updates
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.pauseLiveUpdates();
+            } else {
+                this.resumeLiveUpdates();
+            }
+        });
     }
 
     openTradesModal() {
@@ -352,7 +368,7 @@ class ChartController {
                     priceChange: null
                 };
             });
-
+            
             // Create maps for quick lookup
             const pairsMap = new Map(this.pairs.map(pair => [pair.id, pair]));
             
@@ -686,7 +702,7 @@ class ChartController {
         invertButton.addEventListener('mouseout', () => {
             invertButton.style.backgroundColor = '#3a3a3a';
         });
-        
+
         // Add timeframe change handler
         this.timeframeSelect.addEventListener('change', () => {
             const minutes = parseInt(this.timeframeSelect.value);
@@ -785,7 +801,7 @@ class ChartController {
         this.pairButton.appendChild(pairText);
         this.pairButton.appendChild(chevron);
     }
-
+    
     updatePairSelector() {
         console.log('Updating pair selector with loaded pairs');
         
@@ -817,6 +833,9 @@ class ChartController {
                 return;
             }
             
+            // Stop live updates when changing pairs
+            this.stopLiveUpdates();
+            
             this.currentPair = selectedPair;
             console.log(`Switched to pair ${pairId}:`, this.currentPair);
             
@@ -840,9 +859,8 @@ class ChartController {
                 });
             }
             
-            // Reload chart data and fit content
+            // Reload chart data (this will restart live updates and set proper visible range)
             await this.loadChartData();
-            this.chart.timeScale().fitContent();
         } catch (err) {
             console.error('Pair change error:', err);
             const error = document.getElementById('error');
@@ -850,7 +868,7 @@ class ChartController {
             error.style.display = 'block';
         }
     }
-
+    
     async initializeChart() {
         if (!this.currentPair) {
             console.error('Cannot initialize chart: No pair selected');
@@ -1294,8 +1312,18 @@ class ChartController {
             tradesByInterval.get(key).push(trade);
         });
         
-        // Get all interval timestamps and sort them
-        const intervalTimestamps = Array.from(tradesByInterval.keys()).sort((a, b) => a - b);
+        // Get first trade timestamp and current time to create complete timeline
+        const firstTradeTime = tradeEvents[0].timestamp.getTime();
+        const currentTime = Date.now();
+        
+        // Create complete timeline from first trade to current time
+        const firstInterval = Math.floor(firstTradeTime / intervalMs) * intervalMs;
+        const currentInterval = Math.floor(currentTime / intervalMs) * intervalMs;
+        
+        const completeTimeline = [];
+        for (let time = firstInterval; time <= currentInterval; time += intervalMs) {
+            completeTimeline.push(time);
+        }
         
         const candles = [];
         const volumes = [];
@@ -1308,8 +1336,8 @@ class ChartController {
         const volumeUpColor = buyColor ? `${buyColor}80` : '#0066ff80';
         const volumeDownColor = sellColor ? `${sellColor}80` : '#9933ff80';
         
-        // Process all intervals to maintain full history
-        intervalTimestamps.forEach(time => {
+        // Process complete timeline to maintain full history without gaps
+        completeTimeline.forEach(time => {
             const trades = tradesByInterval.get(time) || [];
             const timestamp = Math.floor(time / 1000); // Convert to seconds for the chart
             
@@ -1330,6 +1358,13 @@ class ChartController {
                     }
                 });
                 
+                // DEBUG: Log volume calculation for recent intervals
+                const timeDate = new Date(time);
+                const isRecent = Date.now() - time < 300000; // Last 5 minutes
+                if (isRecent && volume > 0) {
+                    console.log(`💰 [DEBUG] Volume calc for ${timeDate.toISOString()}: ${trades.length} trades, volume=${volume.toFixed(4)}`);
+                }
+                
                 const close = this.calculatePrice(trades[trades.length - 1].indexed, trades[trades.length - 1].data);
                 
                 candles.push({
@@ -1340,31 +1375,61 @@ class ChartController {
                     close,
                     tradeCount: trades.length
                 });
-                
-                volumes.push({
-                    time: timestamp,
+                    
+                    volumes.push({
+                        time: timestamp,
                     value: volume,
                     color: close >= open ? volumeUpColor : volumeDownColor
                 });
                 
                 previousClose = close;
             } else {
-                // Empty interval with previous close
+                // Empty interval - create candle with previous close price
                 if (previousClose !== null) {
-                    candles.push({
+                candles.push({
                         time: timestamp,
                         open: previousClose,
                         high: previousClose,
                         low: previousClose,
                         close: previousClose,
                         tradeCount: 0
-                    });
+                });
                     
                     volumes.push({
                         time: timestamp,
                         value: 0,
                         color: '#80808040'
                     });
+                } else {
+                    // If this is the very first interval and we don't have a previous close,
+                    // we need to look ahead to find the first valid price
+                    let firstPrice = null;
+                    for (let futureTime = time + intervalMs; futureTime <= currentInterval; futureTime += intervalMs) {
+                        const futureTrades = tradesByInterval.get(futureTime);
+                        if (futureTrades && futureTrades.length > 0) {
+                            firstPrice = this.calculatePrice(futureTrades[0].indexed, futureTrades[0].data);
+                            break;
+                        }
+                    }
+                    
+                    if (firstPrice !== null) {
+                        candles.push({
+                            time: timestamp,
+                            open: firstPrice,
+                            high: firstPrice,
+                            low: firstPrice,
+                            close: firstPrice,
+                            tradeCount: 0
+                        });
+                        
+                        volumes.push({
+                            time: timestamp,
+                            value: 0,
+                            color: '#80808040'
+                        });
+                        
+                        previousClose = firstPrice;
+                    }
                 }
             }
         });
@@ -1488,6 +1553,9 @@ class ChartController {
         loading.style.display = 'block';
         error.style.display = 'none';
         
+        // Stop live updates during data loading
+        this.stopLiveUpdates();
+        
         try {
             console.log(`Loading chart data for pair ${this.currentPair.id}`);
             
@@ -1538,6 +1606,10 @@ class ChartController {
             this.updateTradeHistory();
             
             loading.style.display = 'none';
+            
+            // Start live updates after successful data load
+            this.startLiveUpdates();
+            
         } catch (err) {
             loading.style.display = 'none';
             error.textContent = 'Error loading chart data: ' + err.message;
@@ -1864,8 +1936,20 @@ class ChartController {
                 pairItem.classList.add('selected');
             }
             
+            // Check if this is the USDC/XIAN pair
+            const isUsdcXianPair = (
+                (symbol0 === 'USDC' && symbol1 === 'XIAN') ||
+                (symbol0 === 'XIAN' && symbol1 === 'USDC')
+            );
+            
+            // For USDC/XIAN pair, show USDC/XIAN
+            // For all other pairs, show inverted order
             const pairName = document.createElement('div');
-            pairName.textContent = `${symbol0}/${symbol1}`;
+            if (isUsdcXianPair) {
+                pairName.textContent = 'USDC/XIAN';
+            } else {
+                pairName.textContent = `${symbol1}/${symbol0}`;
+            }
             
             const volume = document.createElement('div');
             volume.textContent = pair.volume24h > 0 
@@ -1928,6 +2012,235 @@ class ChartController {
         const pairsPanel = document.querySelector('.pairs-panel');
         if (pairsPanel) {
             pairsPanel.classList.toggle('active');
+        }
+    }
+
+    // Handle page visibility change to pause/resume live updates
+    pauseLiveUpdates() {
+        if (this.liveUpdateTimer) {
+            clearInterval(this.liveUpdateTimer);
+            this.liveUpdateTimer = null;
+            this.isLiveUpdating = false;
+        }
+    }
+
+    resumeLiveUpdates() {
+        if (!this.isLiveUpdating) {
+            this.liveUpdateTimer = setInterval(() => {
+                this.loadChartData();
+            }, 5000); // 5 seconds
+            this.isLiveUpdating = true;
+        }
+    }
+
+    // Add methods for live updating
+    async fetchNewTrades() {
+        if (!this.currentPair || !this.lastUpdateTimeString) {
+            console.log(`🔍 [DEBUG] fetchNewTrades: No currentPair or lastUpdateTimeString, fetching all trades`);
+            // If no lastUpdateTimeString, fetch all trades (initial load)
+            return await this.fetchSwapEvents();
+        }
+
+        // Use the stored database timestamp string directly for precision
+        const sinceTime = this.lastUpdateTimeString;
+        
+        console.log(`🕒 [DEBUG] fetchNewTrades: Using stored database timestamp=${sinceTime}`);
+        
+        const query = `
+            query GetNewSwapEvents {
+                allEvents(
+                    condition: {contract: "con_pairs", event: "Swap"}
+                    filter: {
+                        dataIndexed: {contains: {pair: "${this.currentPair.id}"}},
+                        created: {greaterThan: "${sinceTime}"}
+                    }
+                    orderBy: CREATED_ASC
+                ) {
+                    edges {
+                        node {
+                            caller
+                            signer
+                            dataIndexed
+                            data
+                            created
+                            txHash
+                        }
+                    }
+                }
+            }
+        `;
+
+        try {
+            const response = await fetch(this.GRAPHQL_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query })
+            });
+
+            const data = await response.json();
+            
+            console.log(`📋 [DEBUG] fetchNewTrades: GraphQL returned ${data.data?.allEvents?.edges?.length || 0} edges`);
+            
+            if (!data.data?.allEvents?.edges) {
+                return { newTrades: [], hasNewTrades: false };
+            }
+
+            // Process new trades
+            const newTrades = data.data.allEvents.edges.map(edge => {
+                const node = edge.node;
+                const dataIndexed = typeof node.dataIndexed === 'string' 
+                    ? JSON.parse(node.dataIndexed) 
+                    : node.dataIndexed;
+                const swapData = typeof node.data === 'string' 
+                    ? JSON.parse(node.data) 
+                    : node.data;
+                
+                const timestampStr = node.created;
+                const timestamp = new Date(timestampStr + 'Z'); // Ensure treating as UTC
+                
+                return {
+                    timestamp: timestamp,
+                    timestampStr: timestampStr,
+                    indexed: dataIndexed,
+                    data: swapData,
+                    caller: node.caller,
+                    signer: node.signer,
+                    txHash: node.txHash
+                };
+            });
+
+            if (newTrades.length > 0) {
+                console.log(`✅ [DEBUG] fetchNewTrades: Found ${newTrades.length} new trades, first: ${newTrades[0].timestampStr}, last: ${newTrades[newTrades.length - 1].timestampStr}`);
+                return { newTrades, hasNewTrades: true };
+            } else {
+                console.log(`❌ [DEBUG] fetchNewTrades: No new trades found since ${sinceTime}`);
+                return { newTrades: [], hasNewTrades: false };
+            }
+
+        } catch (error) {
+            console.error('Error fetching new trades:', error);
+            return { newTrades: [], hasNewTrades: false };
+        }
+    }
+
+    updateChartWithNewTrades(newTrades) {
+        if (!newTrades || newTrades.length === 0) {
+            console.log(`⚠️ [DEBUG] updateChartWithNewTrades called with no trades`);
+            return;
+        }
+
+        console.log(`🔄 [DEBUG] updateChartWithNewTrades: Adding ${newTrades.length} new trades to existing ${this.rawTrades.length} trades`);
+
+        // Add new trades to raw trades array
+        this.rawTrades = [...this.rawTrades, ...newTrades];
+        
+        // Sort by timestamp to maintain order
+        this.rawTrades.sort((a, b) => a.timestamp - b.timestamp);
+
+        console.log(`📊 [DEBUG] Total trades after update: ${this.rawTrades.length}`);
+
+        // Reprocess all trades to update candles
+        const allTrades = [...this.rawTrades].sort((a, b) => a.timestamp - b.timestamp);
+        const chartData = this.processSwapEvents(allTrades);
+        
+        console.log(`📈 [DEBUG] Generated ${chartData.candles.length} candles and ${chartData.volumes.length} volume bars`);
+        
+        if (chartData.candles.length > 0) {
+            // Update chart series with new data
+            this.candlestickSeries.setData(chartData.candles);
+            this.volumeSeries.setData(chartData.volumes);
+            
+            // Update volume lookup map for tooltip
+            this.volumeByTime = new Map();
+            chartData.volumes.forEach(vol => {
+                this.volumeByTime.set(vol.time, vol.value);
+            });
+            
+            // Update trade history
+            this.updateTradeHistory();
+            
+            console.log(`✅ [DEBUG] Chart updated successfully`);
+        }
+    }
+
+    startLiveUpdates() {
+        if (this.liveUpdateTimer) {
+            clearInterval(this.liveUpdateTimer);
+        }
+
+        // Set last update time to the timestamp of the most recent trade we have, not current time
+        if (this.rawTrades && this.rawTrades.length > 0) {
+            // Sort trades by timestamp and get the most recent one
+            const sortedTrades = [...this.rawTrades].sort((a, b) => a.timestamp - b.timestamp);
+            const mostRecentTrade = sortedTrades[sortedTrades.length - 1];
+            this.lastUpdateTime = mostRecentTrade.timestamp.getTime();
+            this.lastUpdateTimeString = mostRecentTrade.timestampStr; // Store original database timestamp
+            console.log(`🕒 [DEBUG] Set lastUpdateTimeString to: ${this.lastUpdateTimeString}`);
+        } else {
+            // If no trades yet, use current time minus a small buffer
+            this.lastUpdateTime = Date.now() - 30000; // 30 seconds ago
+            const bufferDate = new Date(this.lastUpdateTime);
+            this.lastUpdateTimeString = bufferDate.toISOString().replace('Z', '').padEnd(26, '0').substring(0, 26);
+            console.log(`🕒 [DEBUG] No trades, set buffer lastUpdateTimeString to: ${this.lastUpdateTimeString}`);
+        }
+        
+        this.liveUpdateTimer = setInterval(async () => {
+            if (this.isLiveUpdating || !this.currentPair) {
+                return;
+            }
+            
+            console.log(`🔍 [DEBUG] Live update check starting - rawTrades count: ${this.rawTrades?.length || 0}`);
+            
+            this.isLiveUpdating = true;
+            
+            try {
+                const { newTrades, hasNewTrades } = await this.fetchNewTrades();
+                
+                console.log(`📊 [DEBUG] fetchNewTrades result: hasNewTrades=${hasNewTrades}, newTrades count=${newTrades?.length || 0}`);
+                
+                if (hasNewTrades) {
+                    console.log(`📈 [DEBUG] Processing ${newTrades.length} new trades`);
+                    this.updateChartWithNewTrades(newTrades);
+                    
+                    // Update lastUpdateTime to the timestamp of the most recent new trade
+                    const sortedNewTrades = [...newTrades].sort((a, b) => a.timestamp - b.timestamp);
+                    const mostRecentNewTrade = sortedNewTrades[sortedNewTrades.length - 1];
+                    this.lastUpdateTime = mostRecentNewTrade.timestamp.getTime();
+                    this.lastUpdateTimeString = mostRecentNewTrade.timestampStr; // Store original database timestamp
+                    console.log(`🕒 [DEBUG] Updated lastUpdateTimeString to: ${this.lastUpdateTimeString}`);
+                } else {
+                    console.log(`💤 [DEBUG] No new trades found - should NOT be updating chart`);
+                }
+                
+            } catch (error) {
+                console.error('Live update error:', error);
+            } finally {
+                this.isLiveUpdating = false;
+            }
+        }, 30000); // Update every 30 seconds
+    }
+
+    stopLiveUpdates() {
+        if (this.liveUpdateTimer) {
+            clearInterval(this.liveUpdateTimer);
+            this.liveUpdateTimer = null;
+            this.isLiveUpdating = false;
+        }
+    }
+
+    pauseLiveUpdates() {
+        if (this.liveUpdateTimer) {
+            clearInterval(this.liveUpdateTimer);
+            this.liveUpdateTimer = null;
+            this.isLiveUpdating = false;
+        }
+    }
+
+    resumeLiveUpdates() {
+        if (!this.liveUpdateTimer && this.currentPair) {
+            this.startLiveUpdates();
         }
     }
 }
