@@ -332,6 +332,9 @@ class ChartController {
             // Update selectors to match current state
             this.updateSelectorsFromState();
             
+            // Update pairs panel AFTER currentPair is set to ensure correct highlighting
+            this.updatePairsPanel();
+            
             // Initialize the chart (which includes an initial loadChartData)
             this.initializeChart(); // This calls loadChartData internally
 
@@ -563,8 +566,7 @@ class ChartController {
             // Update pair selector with the loaded pairs
             this.updatePairSelector();
             
-            // Update pairs panel
-            this.updatePairsPanel();
+            // Update pairs panel - REMOVED: Now called in loadPairsAndInitialize after currentPair is set
             
         } catch (error) {
             console.error('Error fetching pairs:', error);
@@ -699,21 +701,13 @@ class ChartController {
         pairButton.style.backgroundColor = 'var(--input-background)';
         pairButton.style.color = 'var(--text-color)';
         pairButton.style.cursor = 'pointer';
-        pairButton.style.minWidth = '120px';
+        pairButton.style.width = 'fit-content';
         pairButton.style.textAlign = 'left';
         pairButton.style.display = 'flex';
         pairButton.style.alignItems = 'center';
-        pairButton.style.justifyContent = 'space-between';
+        pairButton.style.justifyContent = 'center';
         pairButton.style.fontFamily = "'VCR MONO', monospace";
         pairButton.style.transition = 'all 0.2s ease';
-        
-        // Add chevron icon
-        const chevron = document.createElement('span');
-        chevron.innerHTML = '▼';
-        chevron.style.marginLeft = '8px';
-        chevron.style.fontSize = '12px';
-        chevron.style.opacity = '0.7';
-        pairButton.appendChild(chevron);
         
         // Store reference to button for updating text
         this.pairButton = pairButton;
@@ -863,16 +857,7 @@ class ChartController {
         const symbol0 = token0?.symbol || this.currentPair.token0;
         const symbol1 = token1?.symbol || this.currentPair.token1;
         
-        const pairText = document.createTextNode(`${symbol0}/${symbol1}`);
-        const chevron = document.createElement('span');
-        chevron.innerHTML = '▼';
-        chevron.style.marginLeft = '8px';
-        chevron.style.fontSize = '12px';
-        chevron.style.opacity = '0.7';
-        
-        this.pairButton.innerHTML = '';
-        this.pairButton.appendChild(pairText);
-        this.pairButton.appendChild(chevron);
+        this.pairButton.textContent = `${symbol0}/${symbol1}`;
     }
     
     updatePairSelector() {
@@ -914,6 +899,9 @@ class ChartController {
             
             // Update button text
             this.updatePairButtonText();
+            
+            // Update pairs panel highlighting
+            this.updatePairsPanel();
             
             // Update chart title
             this.updateChartTitle();
