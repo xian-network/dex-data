@@ -26,6 +26,7 @@ class ChartController {
         
         // Add timeframe configuration
         this.timeframes = [
+            { label: '1m', minutes: 1 },
             { label: '5m', minutes: 5 },
             { label: '10m', minutes: 10 },
             { label: '15m', minutes: 15 },
@@ -135,94 +136,166 @@ class ChartController {
             return;
         }
 
+        // Sort by timestamp (newest first) - same as desktop version
         const sortedTrades = [...this.rawTrades].sort((a, b) => b.timestamp - a.timestamp);
 
-        // Debug: Log the first trade's data structure
-        if (sortedTrades.length > 0) {
-            console.log('Trade data structure:', {
-                indexed: sortedTrades[0].indexed,
-                data: sortedTrades[0].data,
-                timestamp: sortedTrades[0].timestamp,
-                signer: sortedTrades[0].signer
-            });
-        }
-
+        // Get token symbols - same as desktop version
         const token0 = this.tokens.get(this.currentPair.token0);
         const token1 = this.tokens.get(this.currentPair.token1);
         const symbol0 = token0?.symbol || this.currentPair.token0;
         const symbol1 = token1?.symbol || this.currentPair.token1;
 
-        sortedTrades.forEach(trade => {
-            const tradeDiv = document.createElement('div');
-            tradeDiv.className = 'trade-entry';
+        // Create table structure identical to desktop
+        const tableWrapper = document.createElement('div');
+        tableWrapper.className = 'trade-history-wrapper';
+        tableWrapper.style.height = '100%';
+        tableWrapper.style.overflowY = 'auto';
+        tableWrapper.style.padding = '0';
+        tableWrapper.style.backgroundColor = 'var(--background-color)';
 
-            const time = trade.timestamp;
-            const data = trade.data;
+        const table = document.createElement('table');
+        table.className = 'trade-history-table';
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.fontSize = '14px';
+        table.style.backgroundColor = 'var(--background-color)';
+        table.style.tableLayout = 'fixed';
 
-            const hours = time.getUTCHours();
-            const minutes = time.getUTCMinutes();
-            const seconds = time.getUTCSeconds();
-            const day = time.getUTCDate();
-            const month = time.getUTCMonth() + 1;
-            const year = time.getUTCFullYear();
+        // Create table header - identical to desktop
+        const thead = document.createElement('thead');
+        thead.style.position = 'sticky';
+        thead.style.top = '0';
+        thead.style.zIndex = '10';
+        thead.style.backgroundColor = 'var(--background-color)';
 
-            const formattedTime = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} UTC`;
+        const headerRow = document.createElement('tr');
+        const headers = ['Time', 'Type', 'Price', 'Amount', 'Value', 'Maker'];
+        const widths = ['20%', '10%', '15%', '20%', '20%', '15%'];
 
-            const tradeType = this.determineTradeType(data);
-
-            const amount0In = parseFloat(data.amount0In) || 0;
-            const amount0Out = parseFloat(data.amount0Out) || 0;
-            const amount1In = parseFloat(data.amount1In) || 0;
-            const amount1Out = parseFloat(data.amount1Out) || 0;
-
-            let price = 0;
-            if (amount0Out > 0 && amount1In > 0) price = amount1In / amount0Out;
-            else if (amount0In > 0 && amount1Out > 0) price = amount1Out / amount0In;
-            if (this.isInverted && price > 0) price = 1 / price;
-
-            let amount, value, amountSymbol, valueSymbol;
-            if (tradeType === 'BUY') {
-                amount = this.isInverted ? amount1Out : amount0Out;
-                value = this.isInverted ? amount0In : amount1In;
-                amountSymbol = this.isInverted ? symbol1 : symbol0;
-                valueSymbol = this.isInverted ? symbol0 : symbol1;
-            } else { // SELL
-                amount = this.isInverted ? amount1In : amount0In;
-                value = this.isInverted ? amount0Out : amount1Out;
-                amountSymbol = this.isInverted ? symbol0 : symbol1;
-                valueSymbol = this.isInverted ? symbol1 : symbol0;
-            }
-
-            const signer = trade.signer || 'N/A';
-            const signerShort = signer.length > 12 ? `${signer.slice(0, 6)}...${signer.slice(-4)}` : signer;
-
-            tradeDiv.innerHTML = `
-                <div class="trade-details">
-                    <span class="${tradeType.toLowerCase()}">${tradeType} ${amount.toFixed(4)} ${amountSymbol}</span>
-                    <span>Price: ${price.toFixed(6)} ${this.isInverted ? symbol0 : symbol1}/${this.isInverted ? symbol1 : symbol0}</span>
-                </div>
-                <div class="trade-details">
-                    <span>Value: ${value.toFixed(4)} ${valueSymbol}</span>
-                    <span>Signer: ${signerShort}</span>
-                </div>
-                <div class="trade-meta">
-                    <span>${formattedTime}</span>
-                </div>
-            `;
-
-            // Add click handler to open transaction in explorer
-            const txId = trade.indexed?.tx_id;
-            if (txId) {
-                tradeDiv.style.cursor = 'pointer';
-                tradeDiv.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation(); // Prevent event bubbling
-                    window.open(`https://explorer.xian.org/tx/${txId}`, '_blank', 'noopener,noreferrer');
-                });
-            }
-
-            this.modalTradesContent.appendChild(tradeDiv);
+        headers.forEach((header, index) => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            th.style.backgroundColor = 'var(--secondary-accent)';
+            th.style.color = 'var(--header-text-color)';
+            th.style.fontWeight = '500';
+            th.style.padding = '12px';
+            th.style.textAlign = 'left';
+            th.style.borderBottom = '1px solid var(--secondary-accent)';
+            th.style.width = widths[index];
+            headerRow.appendChild(th);
         });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Create table body
+        const tbody = document.createElement('tbody');
+
+        // Add rows for each trade - using exact same logic as desktop
+        sortedTrades.forEach(trade => {
+            try {
+                const row = document.createElement('tr');
+                const time = trade.timestamp; // Already a UTC Date object
+                const data = trade.data;
+                
+                // Format time in UTC and explicitly label it - same as desktop
+                const hours = time.getUTCHours();
+                const minutes = time.getUTCMinutes();
+                const day = time.getUTCDate();
+                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} UTC`;
+                
+                // Format date in UTC - same as desktop
+                const formattedDate = `${day.toString().padStart(2, '0')}-${
+                    (time.getUTCMonth() + 1).toString().padStart(2, '0')}-${
+                    time.getUTCFullYear()}`;
+                
+                // Determine trade type - same as desktop
+                const tradeType = this.determineTradeType(data);
+                
+                // Calculate trade amounts - same as desktop
+                const amount0In = parseFloat(data.amount0In) || 0;
+                const amount0Out = parseFloat(data.amount0Out) || 0;
+                const amount1In = parseFloat(data.amount1In) || 0;
+                const amount1Out = parseFloat(data.amount1Out) || 0;
+                
+                // Calculate price - same as desktop
+                let price = 0;
+                if (amount0Out > 0 && amount1In > 0) {
+                    price = amount1In / amount0Out;
+                } else if (amount0In > 0 && amount1Out > 0) {
+                    price = amount1Out / amount0In;
+                }
+                
+                if (this.isInverted && price > 0) {
+                    price = 1 / price;
+                }
+                
+                // Set amount and value based on trade type - same as desktop
+                let amount, value;
+                if (tradeType === 'BUY') {
+                    amount = this.isInverted ? amount1Out : amount0Out;
+                    value = this.isInverted ? amount0In : amount1In;
+                } else {
+                    amount = this.isInverted ? amount1In : amount0In;
+                    value = this.isInverted ? amount0Out : amount1Out;
+                }
+                
+                // Get maker address and transaction hash - same as desktop
+                const maker = trade.signer || '';
+                const makerShort = maker.length > 8 ? `${maker.slice(0, 4)}...${maker.slice(-4)}` : maker;
+                
+                // Add appropriate CSS class - same as desktop
+                row.className = tradeType.toLowerCase() === 'buy' ? 'buy-row' : 'sell-row';
+                
+                // Create cells with same content as desktop
+                const cells = [
+                    `${formattedDate} ${formattedTime}`,
+                    tradeType,
+                    price.toFixed(6),
+                    `${amount.toFixed(4)} ${this.isInverted ? symbol1 : symbol0}`,
+                    `${value.toFixed(4)} ${this.isInverted ? symbol0 : symbol1}`,
+                    `<div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${makerShort}</span>
+                        ${trade.txHash ? `
+                            <a href="https://explorer.xian.org/tx/${trade.txHash}" 
+                               class="maker-link" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               title="View transaction">
+                                <svg class="tx-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                            </a>
+                        ` : ''}
+                    </div>`
+                ];
+
+                cells.forEach(cellContent => {
+                    const td = document.createElement('td');
+                    td.innerHTML = cellContent;
+                    td.style.padding = '12px';
+                    td.style.textAlign = 'left';
+                    td.style.borderBottom = '1px solid var(--secondary-accent)';
+                    row.appendChild(td);
+                });
+
+                // Add hover effect - same as desktop
+                row.addEventListener('mouseover', () => {
+                    row.style.backgroundColor = 'var(--secondary-accent)';
+                });
+                row.addEventListener('mouseout', () => {
+                    row.style.backgroundColor = '';
+                });
+
+                tbody.appendChild(row);
+            } catch (err) {
+                console.error('Error rendering trade row:', err);
+            }
+        });
+
+        table.appendChild(tbody);
+        tableWrapper.appendChild(table);
+        this.modalTradesContent.appendChild(tableWrapper);
     }
 
     async loadPairsAndInitialize() {
@@ -2219,7 +2292,7 @@ class ChartController {
             } finally {
                 this.isLiveUpdating = false;
             }
-        }, 30000); // Update every 30 seconds
+        }, 5000); // Update every 5 seconds
     }
 
     stopLiveUpdates() {
