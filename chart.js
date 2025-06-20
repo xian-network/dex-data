@@ -2280,7 +2280,7 @@ class ChartController {
             } finally {
                 this.isLiveUpdating = false;
             }
-        }, 5000); // Update every 5 seconds
+        }, 60000); // Update every 60 seconds (1 minute)
     }
 
     stopLiveUpdates() {
